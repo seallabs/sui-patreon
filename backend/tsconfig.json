@@ -17,7 +17,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "allowJs": true
+    "allowJs": true,
+    "paths": {
+      "@sui-patreon/types": ["../packages/types/src"],
+      "@sui-patreon/types/*": ["../packages/types/src/*"]
+    }
   },
   "include": [
     "src/**/*"

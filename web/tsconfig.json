@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@sui-patreon/types": ["../packages/types/src"],
+      "@sui-patreon/types/*": ["../packages/types/src/*"]
     }
   },
   "include": [

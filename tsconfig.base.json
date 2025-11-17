@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    // Language and Environment
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "jsx": "react-jsx",
+
+    // Modules
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+
+    // Type Checking
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Emit
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+
+    // Interop Constraints
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+
+    // Completeness
+    "skipLibCheck": true,
+    "allowJs": true,
+
+    // Path Mappings (can be overridden in workspace configs)
+    "paths": {
+      "@sui-patreon/types": ["./packages/types/src"],
+      "@sui-patreon/types/*": ["./packages/types/src/*"]
+    }
+  }
+}
