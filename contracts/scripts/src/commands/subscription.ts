@@ -1,4 +1,4 @@
-import { Transaction } from '@mysten/sui/transactions';
+import { coinWithBalance, Transaction } from '@mysten/sui/transactions';
 import { getSuiClient, getKeypair, getAddress } from '../utils/client.js';
 import { config } from '../utils/config.js';
 import {
@@ -199,7 +199,7 @@ export async function purchaseSubscription(tierId: string, paymentCoinId: string
     // Call purchase_subscription entry function
     tx.moveCall({
       target: `${config.packageId}::subscription::purchase_subscription`,
-      arguments: [tx.object(tierId), tx.object(paymentCoinId)],
+      arguments: [tx.object(tierId), coinWithBalance({ balance: 10000000 })],
     });
 
     // Sign and execute

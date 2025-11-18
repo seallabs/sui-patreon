@@ -1,0 +1,118 @@
+// Profile event handlers
+import type { SuiEvent } from '@mysten/sui/client';
+import { prisma, updateCheckpoint, type EventType } from '../indexer/checkpoint';
+import {
+  retryWithBackoff,
+  DependencyNotFoundError,
+  isDependencyNotFoundError,
+} from '../indexer/retry-utils';
+
+/**
+ * Handle ProfileCreated event
+ * Creates or updates Creator record in database
+ */
+export async function handleProfileCreated(
+  event: SuiEvent,
+  txDigest: string,
+  eventSeq: string
+): Promise<void> {
+  try {
+    const { profile_id, creator, name } = event.parsedJson as {
+      profile_id: string;
+      creator: string;
+      name: string;
+      timestamp: string;
+    };
+
+    console.log(`[ProfileCreated] Processing event for creator ${creator}, name: ${name}`);
+
+    // Upsert Creator (idempotent operation)
+    await prisma.creator.upsert({
+      where: { address: creator },
+      update: {
+        profileId: profile_id,
+        name: name,
+      },
+      create: {
+        address: creator,
+        profileId: profile_id,
+        name: name,
+        bio: '',
+      },
+    });
+
+    // Update checkpoint
+    await updateCheckpoint('ProfileCreated' as EventType, eventSeq, txDigest);
+
+    console.log(`[ProfileCreated] Successfully indexed creator ${name} (${profile_id})`);
+  } catch (error) {
+    console.error(`[ProfileCreated] Error processing event:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Handle ProfileUpdated event
+ * Updates Creator record with bio, avatar, and timestamp from event
+ * Retries with exponential backoff if profile doesn't exist yet (race condition with ProfileCreated)
+ */
+export async function handleProfileUpdated(
+  event: SuiEvent,
+  txDigest: string,
+  eventSeq: string
+): Promise<void> {
+  try {
+    const { profile_id, name, bio, avatar_url } = event.parsedJson as {
+      profile_id: string;
+      creator: string;
+      name: string;
+      bio: string;
+      avatar_url: string;
+      timestamp: string;
+    };
+
+    console.log(`[ProfileUpdated] Processing event for profile ${profile_id}, creator: ${name}`);
+
+    // Retry logic to handle race condition where ProfileUpdated arrives before ProfileCreated
+    await retryWithBackoff(
+      async () => {
+        // Find creator by profileId
+        const creatorRecord = await prisma.creator.findUnique({
+          where: { profileId: profile_id },
+        });
+
+        if (!creatorRecord) {
+          // Throw retryable error - ProfileCreated event may not have been processed yet
+          throw new DependencyNotFoundError(
+            `Creator not found for profileId: ${profile_id}. ProfileCreated event may not have arrived yet.`
+          );
+        }
+
+        // Update creator with all fields from event
+        await prisma.creator.update({
+          where: { id: creatorRecord.id },
+          data: {
+            name: name,
+            bio: bio,
+            avatarUrl: avatar_url || null,
+            updatedAt: new Date(),
+          },
+        });
+
+        console.log(`[ProfileUpdated] Successfully updated profile ${profile_id} for ${name}`);
+      },
+      isDependencyNotFoundError,
+      {
+        maxRetries: 5,
+        initialDelayMs: 1000,
+        maxDelayMs: 10000,
+      }
+    );
+
+    // Update checkpoint
+    await updateCheckpoint('ProfileUpdated' as EventType, eventSeq, txDigest);
+  } catch (error) {
+    console.error(`[ProfileUpdated] Error processing event:`, error);
+    throw error;
+  }
+}

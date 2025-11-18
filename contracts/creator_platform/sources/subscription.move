@@ -23,7 +23,10 @@ module creator_platform::subscription {
         tier_id: ID,
         creator: address,
         name: String,
+        description: String,
         price: u64,
+        is_active: bool,
+        created_at: u64,
     }
 
     /// Event emitted when a tier's price is updated
@@ -37,6 +40,10 @@ module creator_platform::subscription {
     /// Event emitted when a tier is deactivated
     public struct TierDeactivated has copy, drop {
         tier_id: ID,
+        creator: address,
+        name: String,
+        description: String,
+        price: u64,
         timestamp: u64,
     }
 
@@ -46,7 +53,9 @@ module creator_platform::subscription {
         subscriber: address,
         creator: address,
         tier_id: ID,
+        tier_name: String,
         amount: u64,
+        started_at: u64,
         expires_at: u64,
     }
 
@@ -111,7 +120,10 @@ module creator_platform::subscription {
             tier_id,
             creator: sender,
             name: tier.name,
+            description: tier.description,
             price: price_monthly,
+            is_active: tier.is_active,
+            created_at,
         });
 
         tier
@@ -161,6 +173,10 @@ module creator_platform::subscription {
         // Emit deactivation event
         event::emit(TierDeactivated {
             tier_id: object::id(tier),
+            creator: tier.creator,
+            name: tier.name,
+            description: tier.description,
+            price: tier.price_monthly,
             timestamp: ctx.epoch_timestamp_ms(),
         });
     }
@@ -210,7 +226,9 @@ module creator_platform::subscription {
             subscriber,
             creator: tier.creator,
             tier_id: object::id(tier),
+            tier_name: tier.name,
             amount: payment_amount,
+            started_at,
             expires_at,
         });
     }

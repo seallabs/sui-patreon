@@ -22,10 +22,6 @@ model Creator {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships
-  tiers    Tier[]
-  contents Content[]
-
   // Indexes for performance
   @@index([address])
   @@index([name])
@@ -35,17 +31,12 @@ model Creator {
 model Tier {
   id          String   @id @default(uuid()) @db.Uuid
   tierId      String   @unique // Sui object ID for on-chain tier
-  creatorId   String   @db.Uuid
+  creatorId   String   @db.Uuid // Reference to Creator.id (no foreign key)
   name        String // Tier name (e.g., "Basic", "Premium")
   description String   @default("")
   price       BigInt // Price in MIST (1 SUI = 1,000,000,000 MIST)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
-
-  // Relationships
-  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
-  contentTiers  ContentTier[]
 
   // Indexes for performance
   @@index([creatorId])
@@ -57,14 +48,11 @@ model Subscription {
   id             String   @id @default(uuid()) @db.Uuid
   subscriptionId String   @unique // Sui object ID for on-chain subscription
   subscriber     String // Sui wallet address of subscriber
-  tierId         String   @db.Uuid
+  tierId         String   @db.Uuid // Reference to Tier.id (no foreign key)
   startsAt       DateTime // Subscription start timestamp
   expiresAt      DateTime // Subscription expiration timestamp
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
-
-  // Relationships
-  tier Tier @relation(fields: [tierId], references: [id], onDelete: Cascade)
 
   // Indexes for performance
   @@index([subscriber])
@@ -76,7 +64,7 @@ model Subscription {
 model Content {
   id            String   @id @default(uuid()) @db.Uuid
   contentId     String   @unique // Sui object ID for on-chain content
-  creatorId     String   @db.Uuid
+  creatorId     String   @db.Uuid // Reference to Creator.id (no foreign key)
   title         String
   description   String   @default("")
   contentType   String // MIME type (e.g., "video/mp4", "image/png", "text/markdown")
@@ -85,10 +73,6 @@ model Content {
   isPublic      Boolean  @default(false) // If true, accessible without subscription
   createdAt     DateTime @default(now())
 
-  // Relationships
-  creator      Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  contentTiers ContentTier[]
-
   // Indexes for performance
   @@index([creatorId])
   @@index([contentId])
@@ -96,15 +80,24 @@ model Content {
 
 // ContentTier junction table - Many-to-many relationship between Content and Tier
 model ContentTier {
-  contentId String @db.Uuid
-  tierId    String @db.Uuid
-
-  // Relationships
-  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  tier    Tier    @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  contentId String @db.Uuid // Reference to Content.id (no foreign key)
+  tierId    String @db.Uuid // Reference to Tier.id (no foreign key)
 
   // Composite primary key
   @@id([contentId, tierId])
   @@index([contentId])
   @@index([tierId])
+}
+
+// IndexerCheckpoint model - Tracks event processing progress for resumable indexing
+model IndexerCheckpoint {
+  id           String   @id @default(uuid()) @db.Uuid
+  eventType    String   @unique // e.g., "ProfileCreated", "TierCreated", "SubscriptionPurchased", "ContentCreated"
+  lastEventSeq String // Last processed event sequence number (stored as string for BigInt compatibility)
+  lastTxDigest String // Last processed transaction digest
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  // Index for efficient lookups
+  @@index([eventType])
 }

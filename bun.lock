@@ -19,6 +19,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@mysten/seal": "0.9.4",
+        "@mysten/sui": "1.45.0",
         "@prisma/client": "6.19.0",
         "@upstash/redis": "1.35.6",
         "cors": "2.8.5",

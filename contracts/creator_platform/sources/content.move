@@ -14,7 +14,13 @@ module creator_platform::content {
         content_id: ID,
         creator: address,
         title: String,
+        description: String,
+        content_type: String,
+        walrus_blob_id: String,
+        preview_blob_id: String,
         tier_ids: vector<ID>,
+        is_public: bool,
+        created_at: u64,
     }
 
     // ===== Structs =====
@@ -71,7 +77,13 @@ module creator_platform::content {
             content_id,
             creator: sender,
             title: content.title,
+            description: content.description,
+            content_type: content.content_type,
+            walrus_blob_id: content.walrus_blob_id,
+            preview_blob_id: content.preview_blob_id,
             tier_ids: content.required_tier_ids,
+            is_public: content.is_public,
+            created_at,
         });
 
         // Share object to allow public metadata access

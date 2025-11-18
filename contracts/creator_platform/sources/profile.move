@@ -19,6 +19,10 @@ module creator_platform::profile {
     /// Event emitted when a profile is updated
     public struct ProfileUpdated has copy, drop {
         profile_id: ID,
+        creator: address,
+        name: String,
+        bio: String,
+        avatar_url: String,
         timestamp: u64,
     }
 
@@ -92,6 +96,10 @@ module creator_platform::profile {
         // Emit update event
         event::emit(ProfileUpdated {
             profile_id: object::id(profile),
+            creator: profile.creator,
+            name: profile.name,
+            bio: profile.bio,
+            avatar_url: profile.avatar_url,
             timestamp: ctx.epoch_timestamp_ms(),
         });
     }

@@ -1,16 +1,22 @@
-// Sui blockchain indexer
-import dotenv from 'dotenv';
+// Main entry point for Sui blockchain event indexer
+import { setupListeners, shutdown } from './indexer/event-indexer';
 
-dotenv.config();
+async function main() {
+  try {
+    // Setup graceful shutdown handlers
+    process.on('SIGTERM', () => shutdown());
+    process.on('SIGINT', () => shutdown());
 
-async function startIndexer() {
-  console.log('Sui Indexer starting...');
-  console.log('Network:', process.env.SUI_NETWORK || 'testnet');
-
-  // TODO: Implement indexer logic
-  // - Connect to Sui RPC
-  // - Subscribe to events
-  // - Index creator platform transactions
+    // Start event listeners
+    await setupListeners();
+  } catch (error) {
+    console.error('[Indexer] Fatal error:', error);
+    process.exit(1);
+  }
 }
 
-startIndexer().catch(console.error);
+// Start the indexer
+main().catch((error) => {
+  console.error('[Indexer] Fatal error:', error);
+  process.exit(1);
+});
