@@ -1,191 +1,169 @@
-module creator_platform::content {
-    use std::string::String;
-    use sui::event;
-    use creator_platform::subscription::ActiveSubscription;
+module creator_platform::content;
 
-    // ===== Error Codes =====
+use creator_platform::subscription::ActiveSubscription;
+use std::string::String;
+use sui::bcs::{Self, BCS};
+use sui::clock::Clock;
+use sui::event;
+use sui::table::{Self, Table};
 
-    const EAccessDenied: u64 = 0;
+// ===== Error Codes =====
 
-    // ===== Events =====
+const EAccessDenied: u64 = 0;
 
-    /// Event emitted when new content is created
-    public struct ContentCreated has copy, drop {
-        content_id: ID,
-        creator: address,
-        title: String,
-        description: String,
-        content_type: String,
-        walrus_blob_id: String,
-        preview_blob_id: String,
-        tier_ids: vector<ID>,
-        is_public: bool,
-        created_at: u64,
-    }
+// ===== Events =====
 
-    // ===== Structs =====
+/// Event emitted when new content is created
+public struct ContentCreated has copy, drop {
+    content_id: ID,
+    creator: address,
+    title: String,
+    description: String,
+    content_type: String,
+    walrus_blob_id: String,
+    preview_blob_id: String,
+    tier_ids: vector<ID>,
+    is_public: bool,
+    created_at: u64,
+}
 
-    /// Content metadata registry with Walrus blob IDs and tier-based access requirements
-    /// Shared object to allow public metadata access
-    public struct Content has key {
-        id: UID,
-        creator: address,
-        title: String,
-        description: String,
-        content_type: String,  // MIME type (e.g., "video/mp4", "image/jpeg")
-        walrus_blob_id: String,  // Main content blob ID in Walrus
-        preview_blob_id: String,  // Preview/sample blob ID (can be empty)
-        required_tier_ids: vector<ID>,  // Tier IDs required for access (empty = public)
-        created_at: u64,
-        is_public: bool,  // If true, no tier required
-    }
+// ===== Structs =====
 
-    // ===== Public Functions =====
+public struct ContentRegistry has key {
+    id: UID,
+    contents: Table<address, vector<ID>>,
+}
 
-    /// Create new content with tier-based access control
-    /// Content is shared to allow public metadata viewing
-    public entry fun create_content(
-        title: String,
-        description: String,
-        content_type: String,
-        walrus_blob_id: String,
-        preview_blob_id: String,
-        required_tier_ids: vector<ID>,
-        is_public: bool,
-        ctx: &mut TxContext
-    ) {
-        let sender = ctx.sender();
-        let created_at = ctx.epoch_timestamp_ms();
+/// Content metadata registry with Walrus blob IDs and tier-based access requirements
+/// Shared object to allow public metadata access
+public struct Content has key {
+    id: UID,
+    creator: address,
+    nonce: u64,
+    title: String,
+    description: String,
+    content_type: String, // MIME type (e.g., "video/mp4", "image/jpeg")
+    walrus_blob_id: String, // Main content blob ID in Walrus
+    preview_blob_id: String, // Preview/sample blob ID (can be empty)
+    required_tier_ids: vector<ID>, // Tier IDs required for access (empty = public)
+    is_public: bool, // If true, no tier required
+    created_at: u64,
+}
 
-        let content = Content {
-            id: object::new(ctx),
-            creator: sender,
-            title,
-            description,
-            content_type,
-            walrus_blob_id,
-            preview_blob_id,
-            required_tier_ids,
-            created_at,
-            is_public,
-        };
+// ===== Public Functions =====
 
-        let content_id = object::id(&content);
+fun init(ctx: &mut TxContext) {
+    transfer::share_object(ContentRegistry {
+        id: object::new(ctx),
+        contents: table::new(ctx),
+    });
+}
 
-        // Emit event for indexing
-        event::emit(ContentCreated {
-            content_id,
-            creator: sender,
-            title: content.title,
-            description: content.description,
-            content_type: content.content_type,
-            walrus_blob_id: content.walrus_blob_id,
-            preview_blob_id: content.preview_blob_id,
-            tier_ids: content.required_tier_ids,
-            is_public: content.is_public,
-            created_at,
-        });
+/// Create new content with tier-based access control
+/// Content is shared to allow public metadata viewing
+public fun create_content(
+    registry: &mut ContentRegistry,
+    nonce: u64,
+    title: String,
+    description: String,
+    content_type: String,
+    walrus_blob_id: String,
+    preview_blob_id: String,
+    required_tier_ids: vector<ID>,
+    is_public: bool,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    let creator = ctx.sender();
+    let content = Content {
+        id: object::new(ctx),
+        creator,
+        nonce,
+        title,
+        description,
+        content_type,
+        walrus_blob_id,
+        preview_blob_id,
+        required_tier_ids,
+        is_public,
+        created_at: clock.timestamp_ms(),
+    };
 
-        // Share object to allow public metadata access
-        transfer::share_object(content);
-    }
+    if (registry.contents.contains(creator)) {
+        let contents = registry.contents.borrow_mut(creator);
+        contents.push_back(object::id(&content));
+    } else {
+        let contents = vector::singleton(object::id(&content));
+        registry.contents.add(creator, contents);
+    };
 
-    // ===== View Functions =====
+    event::emit(ContentCreated {
+        content_id: object::id(&content),
+        creator: content.creator,
+        title: content.title,
+        description: content.description,
+        content_type: content.content_type,
+        walrus_blob_id: content.walrus_blob_id,
+        preview_blob_id: content.preview_blob_id,
+        tier_ids: content.required_tier_ids,
+        is_public: content.is_public,
+        created_at: content.created_at,
+    });
 
-    /// Get content creator address
-    public fun creator(content: &Content): address {
-        content.creator
-    }
+    // Share object to allow public metadata access
+    transfer::share_object(content);
+}
 
-    /// Get content title
-    public fun title(content: &Content): String {
-        content.title
-    }
+// ===== Access Verification Functions =====
 
-    /// Get content description
-    public fun description(content: &Content): String {
-        content.description
-    }
+/// Seal approval entry function - called by Seal before content decryption
+/// Verifies that the user's subscription grants access to the content
+/// Transaction success = decryption approved
+/// Transaction abort = access denied
+entry fun seal_approve(
+    id: vector<u8>,
+    content: &Content,
+    subscription: &ActiveSubscription,
+    clock: &Clock,
+) {
+    assert!(check_policy(id, content, subscription, clock), EAccessDenied);
+}
 
-    /// Get content type (MIME type)
-    public fun content_type(content: &Content): String {
-        content.content_type
-    }
+/// Verify if a subscription grants access to the content
+/// Returns true if:
+/// - Content is public, OR
+/// - Subscription is active AND subscription tier matches content requirements
+fun check_policy(
+    id: vector<u8>,
+    content: &Content,
+    subscription: &ActiveSubscription,
+    clock: &Clock,
+): bool {
+    let mut prepared: BCS = bcs::new(id);
+    let creator = prepared.peel_address();
+    let nonce = prepared.peel_u64();
 
-    /// Get Walrus blob ID for main content
-    public fun walrus_blob_id(content: &Content): String {
-        content.walrus_blob_id
-    }
+    // Check id is for the correct content
+    if (creator != content.creator || nonce != content.nonce) {
+        return false
+    };
 
-    /// Get Walrus blob ID for preview
-    public fun preview_blob_id(content: &Content): String {
-        content.preview_blob_id
-    }
+    // Public content is accessible to everyone
+    if (content.is_public) {
+        return true
+    };
 
-    /// Get required tier IDs for access
-    public fun required_tier_ids(content: &Content): vector<ID> {
-        content.required_tier_ids
-    }
+    // Check subscription is for the correct creator
+    if (subscription.creator() != content.creator) {
+        return false
+    };
 
-    /// Get content creation timestamp
-    public fun created_at(content: &Content): u64 {
-        content.created_at
-    }
+    // Check subscription is not expired
+    if (subscription.expires_at() < clock.timestamp_ms()) {
+        return false
+    };
 
-    /// Check if content is public (no tier required)
-    public fun is_public(content: &Content): bool {
-        content.is_public
-    }
-
-    // ===== Access Verification Functions =====
-
-    /// Verify if a subscription grants access to the content
-    /// Returns true if:
-    /// - Content is public, OR
-    /// - Subscription is active AND subscription tier matches content requirements
-    public fun verify_access(
-        content: &Content,
-        subscription: &ActiveSubscription,
-        ctx: &TxContext
-    ): bool {
-        // Public content is accessible to everyone
-        if (content.is_public) {
-            return true
-        };
-
-        // Check subscription is not expired
-        let current_time = ctx.epoch_timestamp_ms();
-        if (subscription.expires_at() < current_time) {
-            return false
-        };
-
-        // Check if subscription tier matches any required tier
-        let sub_tier_id = subscription.tier_id();
-        vector::contains(&content.required_tier_ids, &sub_tier_id)
-    }
-
-    /// Seal approval entry function - called by Seal before content decryption
-    /// Verifies that the user's subscription grants access to the content
-    /// Transaction success = decryption approved
-    /// Transaction abort = access denied
-    public entry fun seal_approve(
-        content: &Content,
-        subscription: &ActiveSubscription,
-        ctx: &TxContext
-    ) {
-        assert!(verify_access(content, subscription, ctx), EAccessDenied);
-    }
-
-    // ===== Test-Only Functions =====
-
-    #[test_only]
-    public fun init_for_testing(_ctx: &mut TxContext) {
-        // Test initialization if needed
-    }
-
-    #[test_only]
-    /// Get error code for access denied (for testing expected failures)
-    public fun get_access_denied_error(): u64 {
-        EAccessDenied
-    }
+    // Check if subscription tier matches any required tier
+    let sub_tier_id = subscription.tier_id();
+    vector::contains(&content.required_tier_ids, &sub_tier_id)
 }

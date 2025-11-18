@@ -1,0 +1,9 @@
+[package]
+name = "asset"
+edition = "2024.beta"
+published-at = "0x952d02f492d8a48393294a25055efb8bb965e04fd012634f33e533b41801fc8c"
+
+[dependencies]
+
+[addresses]
+asset = "0x952d02f492d8a48393294a25055efb8bb965e04fd012634f33e533b41801fc8c"
