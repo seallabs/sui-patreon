@@ -50,7 +50,7 @@ sui client addresses
 sui keytool export --key-identity <your-address>
 ```
 
-Copy the private key (without `suiprivkey` prefix) to `.env`.
+Copy the **entire private key** (including the `suiprivkey1` prefix) to `.env`. Both Bech32 format (`suiprivkey1...`) and hex format (`0x...`) are supported.
 
 ### 4. Deploy Contracts (if not already deployed)
 
@@ -73,10 +73,12 @@ Or use the Discord faucet: https://discord.gg/sui
 
 ## 📖 Usage
 
+> **Note for npm users**: When using `npm run cli`, you must add `--` before the command arguments to pass them correctly. For example: `npm run cli -- profile create --name "Alice"`. This is not required when using `bun run cli`.
+
 ### Check Configuration
 
 ```bash
-npm run cli info
+npm run cli -- info
 # or
 bun run cli info
 ```
@@ -86,7 +88,7 @@ This displays your network, wallet address, and package ID.
 ### List Your SUI Coins
 
 ```bash
-npm run cli get-coins
+npm run cli -- get-coins
 ```
 
 This shows all your SUI coins with their IDs and balances (useful for payments).
@@ -96,7 +98,7 @@ This shows all your SUI coins with their IDs and balances (useful for payments).
 ### Create a Profile
 
 ```bash
-npm run cli profile create \
+npm run cli -- profile create \
   --name "Alice Creator" \
   --bio "Digital artist creating NFT collections" \
   --avatar "https://example.com/avatar.jpg"
@@ -105,19 +107,19 @@ npm run cli profile create \
 ### List Your Profiles
 
 ```bash
-npm run cli profile list
+npm run cli -- profile list
 ```
 
 ### Get Profile Details
 
 ```bash
-npm run cli profile get --id <profile-object-id>
+npm run cli -- profile get --id <profile-object-id>
 ```
 
 ### Update Profile
 
 ```bash
-npm run cli profile update \
+npm run cli -- profile update \
   --id <profile-object-id> \
   --bio "Updated bio text" \
   --avatar "https://example.com/new-avatar.jpg"
@@ -128,7 +130,7 @@ npm run cli profile update \
 ### Create a Subscription Tier
 
 ```bash
-npm run cli subscription create-tier \
+npm run cli -- subscription create-tier \
   --name "Gold Tier" \
   --description "Access to exclusive content" \
   --price 5.0
@@ -139,13 +141,13 @@ The price is in SUI tokens (e.g., `5.0` = 5 SUI/month).
 ### Get Tier Details
 
 ```bash
-npm run cli subscription get-tier --id <tier-object-id>
+npm run cli -- subscription get-tier --id <tier-object-id>
 ```
 
 ### Update Tier Price
 
 ```bash
-npm run cli subscription update-tier-price \
+npm run cli -- subscription update-tier-price \
   --id <tier-object-id> \
   --price 7.5
 ```
@@ -153,7 +155,7 @@ npm run cli subscription update-tier-price \
 ### Deactivate a Tier
 
 ```bash
-npm run cli subscription deactivate-tier --id <tier-object-id>
+npm run cli -- subscription deactivate-tier --id <tier-object-id>
 ```
 
 This prevents new subscriptions but keeps existing ones active.
@@ -162,10 +164,10 @@ This prevents new subscriptions but keeps existing ones active.
 
 ```bash
 # First, get your coin IDs
-npm run cli get-coins
+npm run cli -- get-coins
 
 # Then purchase using a coin with sufficient balance
-npm run cli subscription purchase \
+npm run cli -- subscription purchase \
   --tier-id <tier-object-id> \
   --coin-id <sui-coin-object-id>
 ```
@@ -173,13 +175,13 @@ npm run cli subscription purchase \
 ### List Your Subscriptions
 
 ```bash
-npm run cli subscription list
+npm run cli -- subscription list
 ```
 
 ### Get Subscription Details
 
 ```bash
-npm run cli subscription get --id <subscription-object-id>
+npm run cli -- subscription get --id <subscription-object-id>
 ```
 
 ## 📝 Content Commands
@@ -187,7 +189,7 @@ npm run cli subscription get --id <subscription-object-id>
 ### Create Content
 
 ```bash
-npm run cli content create \
+npm run cli -- content create \
   --title "Exclusive Tutorial" \
   --description "Advanced techniques for digital art" \
   --type "video/mp4" \
@@ -209,13 +211,13 @@ Options:
 ### Get Content Details
 
 ```bash
-npm run cli content get --id <content-object-id>
+npm run cli -- content get --id <content-object-id>
 ```
 
 ### Verify Access to Content
 
 ```bash
-npm run cli content verify-access \
+npm run cli -- content verify-access \
   --content-id <content-object-id> \
   --subscription-id <subscription-object-id>
 ```
@@ -225,9 +227,9 @@ This calls the `seal_approve` function to verify if the subscription grants acce
 ### List Content
 
 ```bash
-npm run cli content list
+npm run cli -- content list
 # or filter by creator
-npm run cli content list --creator <creator-address>
+npm run cli -- content list --creator <creator-address>
 ```
 
 **Note**: Listing requires an indexer. The command provides guidance on using event subscriptions.
@@ -240,7 +242,7 @@ Here's a complete workflow from profile creation to content access:
 
 ```bash
 # Create creator profile
-npm run cli profile create \
+npm run cli -- profile create \
   --name "Bob Artist" \
   --bio "Professional photographer" \
   --avatar "https://example.com/bob.jpg"
@@ -252,13 +254,13 @@ npm run cli profile create \
 
 ```bash
 # Create basic tier
-npm run cli sub create-tier \
+npm run cli -- subscription create-tier \
   --name "Basic" \
   --description "Monthly photo releases" \
   --price 2.0
 
 # Create premium tier
-npm run cli sub create-tier \
+npm run cli -- subscription create-tier \
   --name "Premium" \
   --description "Weekly content + behind the scenes" \
   --price 5.0
@@ -277,7 +279,7 @@ npm run cli sub create-tier \
 ### Step 4: Register Content
 
 ```bash
-npm run cli content create \
+npm run cli -- content create \
   --title "Sunset Collection 2024" \
   --description "Exclusive sunset photography" \
   --type "image/jpeg" \
@@ -289,10 +291,10 @@ npm run cli content create \
 
 ```bash
 # Check available coins
-npm run cli get-coins
+npm run cli -- get-coins
 
 # Purchase subscription
-npm run cli sub purchase \
+npm run cli -- subscription purchase \
   --tier-id <premium-tier-id> \
   --coin-id <sui-coin-id>
 
@@ -302,7 +304,7 @@ npm run cli sub purchase \
 ### Step 6: Verify Access
 
 ```bash
-npm run cli content verify-access \
+npm run cli -- content verify-access \
   --content-id <content-object-id> \
   --subscription-id <subscription-object-id>
 ```
@@ -424,13 +426,13 @@ Most commands return the created object IDs. If you lose them:
 
 ```bash
 # List profiles
-npm run cli profile list
+npm run cli -- profile list
 
 # List subscriptions
-npm run cli sub list
+npm run cli -- subscription list
 
 # List coins
-npm run cli get-coins
+npm run cli -- get-coins
 ```
 
 ## 📚 Additional Resources
