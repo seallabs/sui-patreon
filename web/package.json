@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mysten/dapp-kit": "0.19.9",
+    "@mysten/sui": "^1.45.0",
     "@mysten/zklogin": "0.8.1",
     "@radix-ui/react-dialog": "1.1.15",
     "@radix-ui/react-dropdown-menu": "2.1.16",

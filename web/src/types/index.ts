@@ -63,10 +63,11 @@ export interface TopicCategory {
 
 export interface User {
   address: string;
-  suinsName?: string;
+  suinsName?: string | null;
   displayName?: string;
   avatarUrl?: string;
-  isCreator: boolean;
+  email?: string; // From OAuth provider
+  isCreator?: boolean;
   subscriptions: Subscription[];
   createdAt: Date;
 }

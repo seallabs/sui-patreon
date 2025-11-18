@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, MessageSquare, Bell, Settings, User } from "lucide-react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, formatAddress } from "@/lib/utils";
 import { mockCreators } from "@/lib/mock-data";
+import { useUser } from "@/contexts/user-context";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
@@ -20,6 +21,7 @@ const recentlyVisited = mockCreators.slice(0, 3);
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useUser();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
@@ -94,13 +96,42 @@ export function Sidebar() {
             href="/profile"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-              <User className="h-4 w-4" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium">Guest User</p>
-              <p className="truncate text-xs text-muted-foreground">Not connected</p>
-            </div>
+            {user ? (
+              <>
+                {user.avatarUrl ? (
+                  <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
+                    <Image
+                      src={user.avatarUrl}
+                      alt={user.displayName || "User"}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                    <User className="h-4 w-4" />
+                  </div>
+                )}
+                <div className="flex-1 overflow-hidden">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {user.displayName || "User"}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {formatAddress(user.address)}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <p className="truncate text-sm font-medium">Guest User</p>
+                  <p className="truncate text-xs text-muted-foreground">Not connected</p>
+                </div>
+              </>
+            )}
           </Link>
         </div>
       </div>
