@@ -3,10 +3,15 @@
  * TODO: Implement actual smart contract calls when Move contracts are ready
  */
 
-import type { CreatorProfile, SubscriptionTier, Content, Subscription } from "@/types";
+import type {
+  Content,
+  CreatorProfile,
+  Subscription,
+  SubscriptionTier,
+} from '@/types';
 
 // Mock contract package ID - TODO: Replace with actual deployed contract
-export const PACKAGE_ID = "0x0000000000000000000000000000000000000000";
+export const PACKAGE_ID = '0x0000000000000000000000000000000000000000';
 
 /**
  * Creator Profile Functions
@@ -31,8 +36,8 @@ export async function createCreatorProfile(data: {
   // const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
   // return result.digest;
 
-  console.log("createCreatorProfile called with:", data);
-  throw new Error("Smart contract integration pending (Task #1)");
+  console.log('createCreatorProfile called with:', data);
+  throw new Error('Smart contract integration pending (Task #1)');
 }
 
 export async function updateCreatorProfile(
@@ -40,11 +45,13 @@ export async function updateCreatorProfile(
   data: Partial<CreatorProfile>
 ): Promise<string> {
   // TODO: Call Move contract
-  console.log("updateCreatorProfile called with:", profileId, data);
-  throw new Error("Smart contract integration pending (Task #1)");
+  console.log('updateCreatorProfile called with:', profileId, data);
+  throw new Error('Smart contract integration pending (Task #1)');
 }
 
-export async function getCreatorProfile(address: string): Promise<CreatorProfile | null> {
+export async function getCreatorProfile(
+  address: string
+): Promise<CreatorProfile | null> {
   // TODO: Query blockchain
   // const objects = await client.getOwnedObjects({
   //   owner: address,
@@ -52,7 +59,7 @@ export async function getCreatorProfile(address: string): Promise<CreatorProfile
   // });
   // return parseCreatorProfile(objects.data[0]);
 
-  console.log("getCreatorProfile called for:", address);
+  console.log('getCreatorProfile called for:', address);
   return null; // Return null for now, will use mock data
 }
 
@@ -79,20 +86,25 @@ export async function createSubscriptionTier(data: {
   // const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
   // return result.digest;
 
-  console.log("createSubscriptionTier called with:", data);
-  throw new Error("Smart contract integration pending (Task #2)");
+  console.log('createSubscriptionTier called with:', data);
+  throw new Error('Smart contract integration pending (Task #2)');
 }
 
-export async function getCreatorTiers(creatorAddress: string): Promise<SubscriptionTier[]> {
+export async function getCreatorTiers(
+  creatorAddress: string
+): Promise<SubscriptionTier[]> {
   // TODO: Query blockchain
-  console.log("getCreatorTiers called for:", creatorAddress);
+  console.log('getCreatorTiers called for:', creatorAddress);
   return []; // Return empty for now, will use mock data
 }
 
 /**
  * Subscription Functions
  */
-export async function subscribe(tierId: string, durationMonths: number): Promise<string> {
+export async function subscribe(
+  tierId: string,
+  durationMonths: number
+): Promise<string> {
   // TODO: Call Move contract
   // const tx = new TransactionBlock();
   // tx.moveCall({
@@ -105,13 +117,15 @@ export async function subscribe(tierId: string, durationMonths: number): Promise
   // const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
   // return result.digest;
 
-  console.log("subscribe called with:", tierId, durationMonths);
-  throw new Error("Smart contract integration pending (Task #2)");
+  console.log('subscribe called with:', tierId, durationMonths);
+  throw new Error('Smart contract integration pending (Task #2)');
 }
 
-export async function getUserSubscriptions(userAddress: string): Promise<Subscription[]> {
+export async function getUserSubscriptions(
+  userAddress: string
+): Promise<Subscription[]> {
   // TODO: Query blockchain
-  console.log("getUserSubscriptions called for:", userAddress);
+  console.log('getUserSubscriptions called for:', userAddress);
   return []; // Return empty for now
 }
 
@@ -140,13 +154,15 @@ export async function createContent(data: {
   // const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
   // return result.digest;
 
-  console.log("createContent called with:", data);
-  throw new Error("Smart contract integration pending (Task #3)");
+  console.log('createContent called with:', data);
+  throw new Error('Smart contract integration pending (Task #3)');
 }
 
-export async function getCreatorContent(creatorAddress: string): Promise<Content[]> {
+export async function getCreatorContent(
+  creatorAddress: string
+): Promise<Content[]> {
   // TODO: Query blockchain and fetch from Walrus
-  console.log("getCreatorContent called for:", creatorAddress);
+  console.log('getCreatorContent called for:', creatorAddress);
   return []; // Return empty for now, will use mock data
 }
 
@@ -164,8 +180,8 @@ export async function uploadToWalrus(file: File): Promise<string> {
   // });
   // return blobId;
 
-  console.log("uploadToWalrus called for file:", file.name);
-  throw new Error("Walrus integration pending (Task #3)");
+  console.log('uploadToWalrus called for file:', file.name);
+  throw new Error('Walrus integration pending (Task #3)');
 }
 
 export async function downloadFromWalrus(blobId: string): Promise<Uint8Array> {
@@ -173,8 +189,8 @@ export async function downloadFromWalrus(blobId: string): Promise<Uint8Array> {
   // const blob = await walrusClient.readBlob({ blobId });
   // return blob;
 
-  console.log("downloadFromWalrus called for:", blobId);
-  throw new Error("Walrus integration pending (Task #3)");
+  console.log('downloadFromWalrus called for:', blobId);
+  throw new Error('Walrus integration pending (Task #3)');
 }
 
 /**
@@ -188,8 +204,8 @@ export async function encryptContent(
   // const encrypted = await seal.encrypt(data, { policyId });
   // return encrypted;
 
-  console.log("encryptContent called with policyId:", policyId);
-  throw new Error("Seal integration pending (Task #4)");
+  console.log('encryptContent called with policyId:', policyId);
+  throw new Error('Seal integration pending (Task #4)');
 }
 
 export async function decryptContent(
@@ -200,6 +216,6 @@ export async function decryptContent(
   // const decrypted = await seal.decrypt(encrypted, { txDigest });
   // return decrypted;
 
-  console.log("decryptContent called with subscriptionNFT:", subscriptionNFT);
-  throw new Error("Seal integration pending (Task #4)");
+  console.log('decryptContent called with subscriptionNFT:', subscriptionNFT);
+  throw new Error('Seal integration pending (Task #4)');
 }

@@ -7,15 +7,15 @@
  * DO NOT import this file in production code - it's for reference only.
  */
 
+import { useUser } from '@/contexts/user-context';
+import { useSignPersonalMessage } from '@mysten/dapp-kit';
+import { SignatureWithBytes } from '@mysten/sui/cryptography';
 import {
   decryptContent,
-  decryptContentWithZkLogin,
   decryptContentViaBackend,
+  decryptContentWithZkLogin,
   DecryptHelpers,
 } from './decrypt';
-import { useSignPersonalMessage } from '@mysten/dapp-kit';
-import { useUser } from '@/contexts/user-context';
-import { SignatureWithBytes } from '@mysten/sui/cryptography';
 
 /**
  * Example 1: Basic decryption with React hook
@@ -167,10 +167,9 @@ export async function Example5_WithErrorHandling(
     console.log('Decryption successful:', {
       encryptedSize: result.encryptedSize,
       decryptedSize: result.decryptedSize,
-      compressionRatio: (
-        (1 - result.decryptedSize / result.encryptedSize) *
-        100
-      ).toFixed(2) + '%',
+      compressionRatio:
+        ((1 - result.decryptedSize / result.encryptedSize) * 100).toFixed(2) +
+        '%',
     });
 
     return result;
@@ -179,7 +178,10 @@ export async function Example5_WithErrorHandling(
       // Handle specific error types
       if (error.message.includes('not found')) {
         console.error('Content or blob not found');
-      } else if (error.message.includes('access denied') || error.message.includes('seal_approve')) {
+      } else if (
+        error.message.includes('access denied') ||
+        error.message.includes('seal_approve')
+      ) {
         console.error('Access denied: Invalid or expired subscription');
       } else if (error.message.includes('session key')) {
         console.error('Session key creation failed');
@@ -251,4 +253,3 @@ export async function Example7_DecryptMultipleWithZkLogin(
 
   return { successful, failed };
 }
-

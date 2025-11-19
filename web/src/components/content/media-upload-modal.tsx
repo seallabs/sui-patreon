@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useCallback, DragEvent, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { MediaType } from '@/types';
-import { Upload, X, File } from 'lucide-react';
+import { File, Upload, X } from 'lucide-react';
+import { DragEvent, useCallback, useEffect, useState } from 'react';
 
 interface MediaUploadModalProps {
   open: boolean;
@@ -22,7 +22,14 @@ interface MediaUploadModalProps {
 }
 
 // File type accept patterns for each media type
-const getAcceptPattern = (mediaType: MediaType): string => {
+const getAcceptPattern = (
+  mediaType: MediaType,
+  field: 'preview' | 'exclusive'
+): string => {
+  if (field === 'preview') {
+    return 'image/*';
+  }
+
   switch (mediaType) {
     case 'image':
       return 'image/*';
@@ -38,7 +45,15 @@ const getAcceptPattern = (mediaType: MediaType): string => {
 };
 
 // Validate file type
-const isValidFileType = (file: File, mediaType: MediaType): boolean => {
+const isValidFileType = (
+  file: File,
+  mediaType: MediaType,
+  field: 'preview' | 'exclusive'
+): boolean => {
+  if (field === 'preview') {
+    return file.type.toLowerCase().startsWith('image/');
+  }
+
   if (mediaType === 'attachment') return true;
 
   const type = file.type.toLowerCase();
@@ -83,7 +98,8 @@ export function MediaUploadModal({
     }
   }, [open, initialFiles]);
 
-  const acceptPattern = getAcceptPattern(mediaType);
+  const previewAcceptPattern = getAcceptPattern(mediaType, 'preview');
+  const exclusiveAcceptPattern = getAcceptPattern(mediaType, 'exclusive');
 
   const handleFileSelect = useCallback(
     (
@@ -97,10 +113,8 @@ export function MediaUploadModal({
         return;
       }
 
-      if (!isValidFileType(file, mediaType)) {
-        setError(
-          `Invalid file type. Please select a ${mediaType} file.`
-        );
+      if (!isValidFileType(file, mediaType, type)) {
+        setError(`Invalid file type. Please select a ${mediaType} file.`);
         return;
       }
 
@@ -188,8 +202,8 @@ export function MediaUploadModal({
         dragActive
           ? 'border-primary bg-primary/10'
           : file
-            ? 'border-primary/50 bg-primary/5'
-            : 'border-muted-foreground/25 bg-muted/10'
+          ? 'border-primary/50 bg-primary/5'
+          : 'border-muted-foreground/25 bg-muted/10'
       }`}
       onDragOver={(e) => handleDragOver(e, type)}
       onDragLeave={(e) => handleDragLeave(e, type)}
@@ -197,7 +211,9 @@ export function MediaUploadModal({
     >
       <input
         type='file'
-        accept={acceptPattern}
+        accept={
+          type === 'preview' ? previewAcceptPattern : exclusiveAcceptPattern
+        }
         className='absolute inset-0 cursor-pointer opacity-0'
         onChange={(e) => {
           const selectedFile = e.target.files?.[0] || null;
@@ -231,9 +247,7 @@ export function MediaUploadModal({
           <p className='text-sm font-medium'>
             Drop {type === 'preview' ? 'preview' : 'exclusive'} file here
           </p>
-          <p className='text-xs text-muted-foreground'>
-            or click to browse
-          </p>
+          <p className='text-xs text-muted-foreground'>or click to browse</p>
         </div>
       )}
     </div>
@@ -245,8 +259,9 @@ export function MediaUploadModal({
         <DialogHeader>
           <DialogTitle>Upload {mediaType} files</DialogTitle>
           <DialogDescription>
-            Select preview and exclusive files. Both files are required and
-            must match the {mediaType} type.
+            Select preview (image) and exclusive files. Preview must be an
+            image, while the exclusive file must match the selected {mediaType}{' '}
+            type.
           </DialogDescription>
         </DialogHeader>
 
@@ -269,9 +284,7 @@ export function MediaUploadModal({
           </div>
         </div>
 
-        {error && (
-          <p className='text-sm text-destructive'>{error}</p>
-        )}
+        {error && <p className='text-sm text-destructive'>{error}</p>}
 
         <DialogFooter>
           <Button type='button' variant='outline' onClick={handleCancel}>
@@ -289,4 +302,3 @@ export function MediaUploadModal({
     </Dialog>
   );
 }
-

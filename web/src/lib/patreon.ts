@@ -1,7 +1,7 @@
 import { bcsCreatorInfo } from '@/types/bcs';
 import { Transaction } from '@mysten/sui/transactions';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
-import { CONFIG } from './config';
+import { CONFIG, suiClient } from './config';
 
 const createProfile = (name: string, bio: string, avatarUrl: string) => {
   const tx = new Transaction();
@@ -93,6 +93,15 @@ const updateProfile = (name: string, bio: string, avatarUrl: string) => {
   });
   return tx;
 };
+
+const fetchSubscriptions = async (address: string) => {
+  suiClient.getOwnedObjects({
+    owner: address,
+    filter: {
+      StructType: `${CONFIG.PACKAGE_ID}::subscription::ActiveSubscription`
+    }
+  })
+}
 
 export const patreon = {
   createProfile,

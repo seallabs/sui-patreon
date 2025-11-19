@@ -220,8 +220,8 @@ function getWalrusUrl(patchId: string): string {
 function normalizeContentType(
   type: string
 ): "video" | "audio" | "image" | "text" {
-  if (type.startsWith("video/")) return "video";
-  if (type.startsWith("audio/")) return "audio";
-  if (type.startsWith("image/")) return "image";
+  if (type.startsWith("video")) return "video";
+  if (type.startsWith("audio")) return "audio";
+  if (type.startsWith("image")) return "image";
   return "text"; // Default fallback
 }

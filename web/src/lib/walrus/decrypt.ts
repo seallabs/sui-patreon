@@ -12,14 +12,14 @@
  * 5. Decrypt content using Seal with transaction proof
  */
 
+import { CONFIG } from '@/lib/config';
+import { getEphemeralKeyPair } from '@/lib/zklogin';
+import { EncryptedObject, SessionKey } from '@mysten/seal';
+import { SignatureWithBytes } from '@mysten/sui/cryptography';
 import { Transaction } from '@mysten/sui/transactions';
 import { SUI_CLOCK_OBJECT_ID, fromHex } from '@mysten/sui/utils';
-import { EncryptedObject } from '@mysten/seal';
-import { SignatureWithBytes } from '@mysten/sui/cryptography';
 import { client } from './client';
-import { sealClient, getSessionKey } from './seal';
-import { getEphemeralKeyPair } from '@/lib/zklogin';
-import { CONFIG } from '@/lib/config';
+import { getSessionKey, sealClient } from './seal';
 
 /**
  * Options for decrypting content
@@ -29,14 +29,12 @@ export interface DecryptContentOptions {
   contentId: string;
   /** User's ActiveSubscription NFT ID (proves access rights) */
   subscriptionId: string;
-  /** Function to sign personal message for session key creation */
-  signPersonalMessage: (message: Uint8Array) => Promise<SignatureWithBytes>;
-  /** User's Sui address (required for session key creation) */
-  userAddress: string;
+  /** Walrus blob (patch) ID that stores the encrypted bytes */
+  blobId: string;
+  /** Active Seal session key (must already be initialized and signed) */
+  sessionKey: SessionKey;
   /** Optional: Package ID (defaults to CONFIG.PUBLISHED_AT) */
   packageId?: string;
-  /** Optional: Session key TTL in minutes (default: 10) */
-  sessionKeyTtl?: number;
 }
 
 /**
@@ -49,6 +47,8 @@ export interface DecryptContentWithZkLoginOptions {
   subscriptionId: string;
   /** User's Sui address (required for session key creation) */
   userAddress: string;
+  /** (Optional) Blob ID if already known. If omitted, it will be fetched from on-chain metadata. */
+  blobId?: string;
   /** Optional: Package ID (defaults to CONFIG.PUBLISHED_AT) */
   packageId?: string;
   /** Optional: Session key TTL in minutes (default: 10) */
@@ -84,14 +84,14 @@ export interface DecryptContentResult {
  *
  * @example
  * ```typescript
+ * const sessionKey = await getSessionKey(...); // create & sign session key up-front
+ * const blobId = await getBlobIdForContent('0xcontent456...');
+ *
  * const result = await decryptContent({
  *   contentId: '0xcontent456...',
  *   subscriptionId: '0xsubscription789...',
- *   userAddress: '0xuser123...',
- *   signPersonalMessage: async (msg) => {
- *     // Sign with user's wallet
- *     return await wallet.signPersonalMessage(msg);
- *   },
+ *   blobId,
+ *   sessionKey,
  * });
  *
  * // Use decrypted content
@@ -105,54 +105,36 @@ export async function decryptContent(
   const {
     contentId,
     subscriptionId,
-    signPersonalMessage,
-    userAddress,
+    blobId,
+    sessionKey,
     packageId = CONFIG.PUBLISHED_AT,
-    sessionKeyTtl = 10,
   } = options;
 
-  console.log('🔓 Starting content decryption:', { contentId, subscriptionId });
-
-  if (!userAddress) {
-    throw new Error('User address is required. Please provide userAddress in options.');
-  }
+  console.log('🔓 Starting content decryption:', {
+    contentId,
+    subscriptionId,
+    blobId,
+  });
 
   try {
-    // Step 1: Get content metadata from Sui (includes blobId)
-    console.log('📋 Step 1: Retrieving content metadata from Sui...');
-    const contentMetadata = await getContentMetadata(contentId);
-    console.log('✅ Retrieved content metadata');
-
-    // Step 2: Extract blobId from content metadata
-    console.log('🔍 Step 2: Extracting blobId from content metadata...');
-    const blobId = extractBlobIdFromContent(contentMetadata);
-    console.log(`✅ Extracted blobId: ${blobId}`);
-
-    // Step 3: Download encrypted data from Walrus
-    console.log('📥 Step 3: Downloading encrypted data from Walrus...');
+    // Step 1: Download encrypted data from Walrus
+    console.log('📥 Step 1: Downloading encrypted data from Walrus...');
     const encryptedData = await downloadFromWalrus(blobId);
     console.log(`✅ Downloaded ${encryptedData.length} bytes from Walrus`);
 
-    // Step 4: Extract policy ID from Seal encrypted object
-    console.log('🔍 Step 4: Extracting policy ID from encrypted object...');
+    // Step 2: Extract policy ID from Seal encrypted object
+    console.log('🔍 Step 2: Extracting policy ID from encrypted object...');
     const policyId = extractPolicyIdFromEncryptedData(encryptedData);
     console.log(`✅ Extracted policy ID: ${toHexString(policyId)}`);
 
-    // Step 5: User address validation
-    console.log(`👤 User address: ${userAddress}`);
-
-    // Step 6: Create session key for Seal decryption
-    console.log('🔑 Step 6: Creating session key...');
-    const sessionKey = await getSessionKey(
-      packageId,
-      userAddress,
-      signPersonalMessage,
-      sessionKeyTtl
-    );
-    console.log('✅ Session key created');
-
-    // Step 7: Build transaction to prove access
-    console.log('📝 Step 7: Building access verification transaction...');
+    // Step 3: Build transaction to prove access
+    console.log('📝 Step 3: Building access verification transaction...');
+    console.log({
+      policyId,
+      contentId,
+      subscriptionId,
+      packageId
+    })
     const txBytes = await buildAccessVerificationTransaction({
       policyId,
       contentId,
@@ -161,8 +143,8 @@ export async function decryptContent(
     });
     console.log(`✅ Transaction built (${txBytes.length} bytes)`);
 
-    // Step 8: Decrypt with Seal
-    console.log('🔓 Step 8: Decrypting with Seal...');
+    // Step 4: Decrypt with Seal
+    console.log('🔓 Step 4: Decrypting with Seal...');
     const decryptedBytes = await sealClient.decrypt({
       data: encryptedData,
       sessionKey,
@@ -215,7 +197,9 @@ async function downloadFromWalrus(blobId: string): Promise<Uint8Array> {
  * @returns Policy ID as Uint8Array
  * @throws Error if encrypted object cannot be parsed
  */
-function extractPolicyIdFromEncryptedData(encryptedData: Uint8Array): Uint8Array {
+function extractPolicyIdFromEncryptedData(
+  encryptedData: Uint8Array
+): Uint8Array {
   try {
     // Parse the Seal encrypted object to extract the policy ID
     const encryptedObject = EncryptedObject.parse(encryptedData);
@@ -223,11 +207,15 @@ function extractPolicyIdFromEncryptedData(encryptedData: Uint8Array): Uint8Array
 
     // Convert hex string to Uint8Array
     // Remove '0x' prefix if present
-    const hexString = policyIdHex.startsWith('0x') ? policyIdHex.slice(2) : policyIdHex;
+    const hexString = policyIdHex.startsWith('0x')
+      ? policyIdHex.slice(2)
+      : policyIdHex;
     return fromHex(hexString);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Failed to extract policy ID from encrypted data: ${message}`);
+    throw new Error(
+      `Failed to extract policy ID from encrypted data: ${message}`
+    );
   }
 }
 
@@ -287,6 +275,14 @@ function extractBlobIdFromContent(contentData: any): string {
 }
 
 /**
+ * Convenience helper: fetch blobId for a content object.
+ */
+export async function getBlobIdForContent(contentId: string): Promise<string> {
+  const contentMetadata = await getContentMetadata(contentId);
+  return extractBlobIdFromContent(contentMetadata);
+}
+
+/**
  * Options for building access verification transaction
  */
 interface BuildTransactionOptions {
@@ -324,9 +320,9 @@ async function buildAccessVerificationTransaction(
       target: `${packageId}::content::seal_approve`,
       arguments: [
         tx.pure.vector('u8', Array.from(policyId)), // Policy ID from encrypted object
-        tx.object(contentId),                        // Content object
-        tx.object(subscriptionId),                  // User's subscription NFT
-        tx.object(SUI_CLOCK_OBJECT_ID),              // Sui clock for time verification
+        tx.object(contentId), // Content object
+        tx.object(subscriptionId), // User's subscription NFT
+        tx.object(SUI_CLOCK_OBJECT_ID), // Sui clock for time verification
       ],
     });
 
@@ -341,7 +337,9 @@ async function buildAccessVerificationTransaction(
     return txBytes;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Failed to build access verification transaction: ${message}`);
+    throw new Error(
+      `Failed to build access verification transaction: ${message}`
+    );
   }
 }
 
@@ -415,10 +413,37 @@ export function signPersonalMessageWithZkLogin(
 export async function decryptContentWithZkLogin(
   options: DecryptContentWithZkLoginOptions
 ): Promise<DecryptContentResult> {
-  // Use zkLogin ephemeral keypair for signing
+  const {
+    contentId,
+    subscriptionId,
+    userAddress,
+    blobId: providedBlobId,
+    packageId = CONFIG.PUBLISHED_AT,
+    sessionKeyTtl = 10,
+  } = options;
+
+  if (!userAddress) {
+    throw new Error('User address is required for zkLogin decryption.');
+  }
+
+  // 1. Resolve blobId (from option or by fetching metadata)
+  const blobId = providedBlobId ?? (await getBlobIdForContent(contentId));
+
+  // 2. Create session key using zkLogin signer
+  const sessionKey = await getSessionKey(
+    packageId,
+    userAddress,
+    signPersonalMessageWithZkLogin,
+    sessionKeyTtl
+  );
+
+  // 3. Delegate to base decrypt function
   return decryptContent({
-    ...options,
-    signPersonalMessage: signPersonalMessageWithZkLogin,
+    contentId,
+    subscriptionId,
+    blobId,
+    sessionKey,
+    packageId,
   });
 }
 
@@ -432,14 +457,19 @@ export async function decryptContentWithZkLogin(
  * @returns Promise resolving to decrypted content
  * @throws Error if API call fails
  */
+export interface DecryptContentViaBackendOptions {
+  contentId: string;
+  subscriptionId: string;
+  packageId?: string;
+  apiBaseUrl?: string;
+}
+
 export async function decryptContentViaBackend(
-  options: DecryptContentOptions & { apiBaseUrl?: string }
+  options: DecryptContentViaBackendOptions
 ): Promise<DecryptContentResult> {
   const {
     contentId,
     subscriptionId,
-    signPersonalMessage,
-    userAddress,
     packageId = CONFIG.PUBLISHED_AT,
     apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   } = options;
@@ -475,15 +505,21 @@ export async function decryptContentViaBackend(
     const response = await fetch(url);
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(error.error || `API request failed: ${response.statusText}`);
+      const error = await response
+        .json()
+        .catch(() => ({ error: response.statusText }));
+      throw new Error(
+        error.error || `API request failed: ${response.statusText}`
+      );
     }
 
     // Step 6: Get decrypted data
     const arrayBuffer = await response.arrayBuffer();
     const decryptedData = new Uint8Array(arrayBuffer);
 
-    console.log(`✅ Decryption via backend successful: ${decryptedData.length} bytes`);
+    console.log(
+      `✅ Decryption via backend successful: ${decryptedData.length} bytes`
+    );
 
     return {
       data: decryptedData,
@@ -535,9 +571,12 @@ export const DecryptHelpers = {
   /**
    * Create download link for decrypted content
    */
-  createDownloadLink(data: Uint8Array, filename: string, mimeType?: string): string {
+  createDownloadLink(
+    data: Uint8Array,
+    filename: string,
+    mimeType?: string
+  ): string {
     const blob = DecryptHelpers.toBlob(data, mimeType);
     return URL.createObjectURL(blob);
   },
 };
-

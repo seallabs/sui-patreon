@@ -130,7 +130,7 @@ export default function CreatePage() {
         nonce,
         formData.title,
         formData.content,
-        formData.mediaType!,
+        formData.exclusiveFile?.type!,
         files[0].id,
         files[1].id,
         formData.tierIds
