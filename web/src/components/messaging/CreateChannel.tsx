@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 export function CreateChannel() {
   const { createChannel, isCreatingChannel, channelError, isReady } = useMessaging();
   const currentAccount = useCurrentAccount();
-  const [recipientAddresses, setRecipientAddresses] = useState('');
+  const [recipientAddress, setRecipientAddress] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -20,47 +20,28 @@ export function CreateChannel() {
     setSuccessMessage(null);
 
     // Parse and validate addresses
-    if (!recipientAddresses.trim()) {
+    if (!recipientAddress.trim()) {
       setValidationError('Please enter at least one recipient address');
       return;
     }
 
-    const addresses = recipientAddresses
-      .split(',')
-      .map(addr => addr.trim())
-      .filter(addr => addr.length > 0);
-
-    if (addresses.length === 0) {
-      setValidationError('Please enter at least one recipient address');
-      return;
-    }
-
-    // Check for duplicate addresses in the input
-    const uniqueAddresses = [...new Set(addresses)];
-    if (uniqueAddresses.length !== addresses.length) {
-      setValidationError('Duplicate addresses detected. Please enter each address only once.');
+    if (!isValidSuiAddress(recipientAddress)) {
+      setValidationError(`Invalid Sui address: ${recipientAddress}`);
       return;
     }
 
     // Check if user is trying to add their own address
-    if (currentAccount && addresses.some(addr => addr.toLowerCase() === currentAccount.address.toLowerCase())) {
+    if (currentAccount && currentAccount.address.toLowerCase() === recipientAddress.toLowerCase()) {
       setValidationError('You cannot add your own connected wallet address. You will be automatically included in the channel.');
       return;
     }
 
-    // Validate each address
-    const invalidAddresses = addresses.filter(addr => !isValidSuiAddress(addr));
-    if (invalidAddresses.length > 0) {
-      setValidationError(`Invalid Sui address(es): ${invalidAddresses.join(', ')}`);
-      return;
-    }
-
     // Create channel
-    const result = await createChannel(addresses);
+    const result = await createChannel(recipientAddress);
 
     if (result?.channelId) {
       setSuccessMessage(`Channel created successfully! ID: ${result.channelId.slice(0, 10)}...`);
-      setRecipientAddresses(''); // Clear input on success
+      setRecipientAddress(''); // Clear input on success
 
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(null), 5000);
@@ -83,10 +64,10 @@ export function CreateChannel() {
         </div>
 
         <Input
-          placeholder="Enter Sui addresses (0x..., 0x..., ...)"
-          value={recipientAddresses}
+          placeholder="Enter Sui address"
+          value={recipientAddress}
           onChange={(e) => {
-            setRecipientAddresses(e.target.value);
+            setRecipientAddress(e.target.value);
             setValidationError(null);
           }}
           disabled={!isReady || isCreatingChannel}

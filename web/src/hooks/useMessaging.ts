@@ -4,6 +4,7 @@ import { useSignAndExecuteTransaction, useCurrentAccount, useSuiClient } from '@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Transaction } from '@mysten/sui/transactions';
 import { DecryptedChannelObject, DecryptMessageResult, ChannelMessagesDecryptedRequest, PollingState } from '@mysten/messaging';
+import { CONFIG } from '@/lib/config';
 
 export const useMessaging = () => {
   const messagingClient = useMessagingClient();
@@ -35,9 +36,27 @@ export const useMessaging = () => {
   const inFlightRequests = useRef<Set<string>>(new Set());
 
   // Create channel function
-  const createChannel = useCallback(async (recipientAddresses: string[]) => {
+  const createChannel = useCallback(async (recipientAddress: string) => {
     if (!messagingClient || !currentAccount) {
       setChannelError('[createChannel] Messaging client or account not available');
+      return null;
+    }
+
+    // Verify owner is subscribed to the recipient
+    const { data: subscriptions } = await suiClient.getOwnedObjects({
+      owner: currentAccount.address,
+      filter: {
+        StructType: `${CONFIG.PACKAGE_ID}::subscription::ActiveSubscription`,
+      },
+      options: { showContent: true },
+    });
+
+    const subscription = subscriptions.find(sub => {
+      const fields = (sub.data?.content as any).fields;
+      return fields.creator === recipientAddress && fields.expires_at > Date.now();
+    });
+    if (!subscription) {
+      setChannelError('You are not subscribed to this creator, please subscribe to the creator to create a channel');
       return null;
     }
 
@@ -48,7 +67,7 @@ export const useMessaging = () => {
       // Create channel flow
       const flow = messagingClient.createChannelFlow({
         creatorAddress: currentAccount.address,
-        initialMemberAddresses: recipientAddresses,
+        initialMemberAddresses: [recipientAddress],
       });
 
       // Step 1: Build and execute channel creation
