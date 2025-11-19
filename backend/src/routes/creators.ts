@@ -349,13 +349,12 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       id: post.id,
       title: post.title,
       description: post.description,
-      thumbnailUrl: post.previewPatchId
-        ? `https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id/${post.previewPatchId}`
-        : undefined,
+      contentType: post.contentType,
+      exclusiveId: post.sealedPatchId,
+      previewId: post.previewPatchId,
       publishedAt: post.publishedAt,
       viewCount: post.viewCount,
       likeCount: post.likeCount,
-      contentType: post.contentType,
       isPublic: post.isPublic,
     }));
 

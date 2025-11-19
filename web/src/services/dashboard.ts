@@ -23,8 +23,9 @@ export interface DashboardActivity {
 export interface DashboardRecentPost {
   id: string;
   title: string;
-  mediaType: string;
-  mediaUrls: string[];
+  contentType: string; // MIME type (e.g., "video/mp4", "image/png")
+  exclusiveId: string; // Walrus patch ID for encrypted content
+  previewId: string | null; // Walrus patch ID for public preview
   audience: "free" | "paid";
   createdAt: string;
   viewCount: number;
@@ -34,8 +35,9 @@ export interface DashboardRecentPost {
 export interface DashboardContentItem {
   id: string;
   title: string;
-  mediaType: string;
-  mediaUrls: string[];
+  contentType: string; // MIME type (e.g., "video/mp4", "image/png")
+  exclusiveId: string; // Walrus patch ID for encrypted content
+  previewId: string | null; // Walrus patch ID for public preview
   audience: "free" | "paid";
   tierNames: string[];
   createdAt: string;

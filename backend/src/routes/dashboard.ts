@@ -29,8 +29,9 @@ interface Activity {
 interface RecentPost {
   id: string;
   title: string;
-  mediaType: string;
-  mediaUrls: string[];
+  contentType: string;
+  exclusiveId: string;
+  previewId: string | null;
   audience: 'free' | 'paid';
   createdAt: string;
   viewCount: number;
@@ -40,8 +41,9 @@ interface RecentPost {
 interface ContentListItem {
   id: string;
   title: string;
-  mediaType: string;
-  mediaUrls: string[];
+  contentType: string;
+  exclusiveId: string;
+  previewId: string | null;
   audience: 'free' | 'paid';
   tierNames: string[];
   createdAt: string;
@@ -75,10 +77,15 @@ interface DashboardResponse {
  * Returns:
  * - overview: Total members and revenue
  * - activity: Last 30 days comments, likes, impressions
- * - recentPost: Latest published content item
- * - recentPosts: Paginated list of content items
+ * - recentPost: Latest published content item with contentType and media IDs
+ * - recentPosts: Paginated list of content items with contentType and media IDs
  * - cursor: Next cursor for pagination
  * - hasMore: Whether more results exist
+ *
+ * Note: Each content item contains:
+ * - contentType: Full MIME type (e.g., "video/mp4", "image/png")
+ * - exclusiveId: Sealed/exclusive content patch ID (just the ID, no URL prefix)
+ * - previewId: Preview content patch ID or null (just the ID, no URL prefix)
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -278,13 +285,14 @@ async function getRecentPost(creatorId: string): Promise<RecentPost | null> {
     where: { contentId: content.id },
   });
 
-  const mediaUrls = getMediaUrls(content.sealedPatchId, content.previewPatchId);
+  const { exclusiveId, previewId } = getMediaIds(content.sealedPatchId, content.previewPatchId);
 
   return {
     id: content.id,
     title: content.title,
-    mediaType: mapContentTypeToMediaType(content.contentType),
-    mediaUrls,
+    contentType: content.contentType,
+    exclusiveId,
+    previewId,
     audience: content.isPublic || contentTiers.length === 0 ? 'free' : 'paid',
     createdAt: (content.publishedAt || content.createdAt).toISOString(),
     viewCount: content.viewCount,
@@ -407,13 +415,14 @@ async function getRecentPosts(params: {
     }
 
     const tierNames = itemTierIds.map((tid) => tierMap.get(tid) || 'Unknown');
-    const mediaUrls = getMediaUrls(item.sealedPatchId, item.previewPatchId);
+    const { exclusiveId, previewId } = getMediaIds(item.sealedPatchId, item.previewPatchId);
 
     allPosts.push({
       id: item.id,
       title: item.title,
-      mediaType: mapContentTypeToMediaType(item.contentType),
-      mediaUrls,
+      contentType: item.contentType,
+      exclusiveId,
+      previewId,
       audience: item.isPublic || itemTierIds.length === 0 ? 'free' : 'paid',
       tierNames,
       createdAt: (item.publishedAt || item.createdAt).toISOString(),
@@ -437,29 +446,17 @@ async function getRecentPosts(params: {
 }
 
 /**
- * Map MIME content type to media type
+ * Get media IDs from Walrus patch IDs
+ * Returns an object with exclusiveId and previewId (just the IDs, no URL prefix)
  */
-function mapContentTypeToMediaType(contentType: string): string {
-  if (contentType.startsWith('video/')) return 'video';
-  if (contentType.startsWith('audio/')) return 'audio';
-  if (contentType.startsWith('image/')) return 'image';
-  return 'text';
-}
-
-/**
- * Get media URLs from Walrus patch IDs
- */
-function getMediaUrls(sealedPatchId: string, previewPatchId: string | null): string[] {
-  const baseUrl = 'https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id';
-  const urls: string[] = [];
-
-  if (previewPatchId) {
-    urls.push(`${baseUrl}/${previewPatchId}`);
-  }
-
-  urls.push(`${baseUrl}/${sealedPatchId}`);
-
-  return urls;
+function getMediaIds(sealedPatchId: string, previewPatchId: string | null): {
+  exclusiveId: string;
+  previewId: string | null;
+} {
+  return {
+    exclusiveId: sealedPatchId,
+    previewId: previewPatchId,
+  };
 }
 
 export default router;

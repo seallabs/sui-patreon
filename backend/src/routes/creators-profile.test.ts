@@ -316,7 +316,7 @@ describe('Creator Profile API', () => {
       expect(tier1.description).toBe(
         'Access to basic content\nEarly access to episodes\nMonthly Q&A'
       );
-      expect(tier1.price).toBe(5); // Converted from MIST to SUI
+      expect(tier1.price).toBe(5000); // Converted from base units to USDC (6 decimals)
       expect(tier1.benefits).toEqual([
         'Access to basic content',
         'Early access to episodes',
@@ -328,7 +328,7 @@ describe('Creator Profile API', () => {
       // Verify tier2
       const tier2 = tiers.find((t: any) => t.name === 'Premium');
       expect(tier2).toBeDefined();
-      expect(tier2.price).toBe(10);
+      expect(tier2.price).toBe(10000); // Converted from base units to USDC (6 decimals)
       expect(tier2.subscriberCount).toBe(1);
       expect(tier2.benefits).toEqual([
         'Everything in Basic',
@@ -358,12 +358,26 @@ describe('Creator Profile API', () => {
       expect(post.id).toBeDefined();
       expect(post.title).toBeDefined();
       expect(post.description).toBeDefined();
+      expect(post.contentType).toBeDefined();
+      expect(post.exclusiveId).toBeDefined();
+      expect(post.previewId).toBeDefined();
       expect(post.publishedAt).toBeDefined();
       expect(post.viewCount).toBeDefined();
       expect(post.likeCount).toBeDefined();
-      expect(post.contentType).toBeDefined();
       expect(post.isPublic).toBeDefined();
       expect(typeof post.isPublic).toBe('boolean');
+
+      // Verify patch IDs are raw values, not URLs
+      expect(post.exclusiveId).toBe('blob_id_3');
+      expect(post.previewId).toBeNull(); // Post 3 has no preview
+      expect(post.exclusiveId).not.toContain('walrus');
+      expect(post.exclusiveId).not.toContain('aggregator');
+
+      // Verify post with preview (Published Post 2)
+      const postWithPreview = recentPosts[1];
+      expect(postWithPreview.exclusiveId).toBe('blob_id_2');
+      expect(postWithPreview.previewId).toBe('preview_blob_id_2');
+      expect(postWithPreview.previewId).not.toContain('walrus');
     });
 
     it('should return 404 for non-existent creator', async () => {

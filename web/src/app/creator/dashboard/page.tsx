@@ -19,6 +19,23 @@ import { useEffect, useState } from 'react';
 const MOCK_WALLET_ADDRESS =
   '0x1abec7f223edeb5120fab9c0cc133db6167145937fd1261777e5eeab0e87f966';
 
+/**
+ * Map MIME type to simplified media type
+ */
+function mapContentTypeToMediaType(contentType: string): 'video' | 'audio' | 'image' | 'text' {
+  if (contentType.startsWith('video/')) return 'video';
+  if (contentType.startsWith('audio/')) return 'audio';
+  if (contentType.startsWith('image/')) return 'image';
+  return 'text';
+}
+
+/**
+ * Construct Walrus URL from patch ID
+ */
+function getWalrusUrl(patchId: string): string {
+  return `https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id/${patchId}`;
+}
+
 export default function CreatorDashboard() {
   const userAddress = useCurrentAccount()?.address;
   const [filters, setFilters] = useState<DashboardQueryParams>({
@@ -99,15 +116,10 @@ export default function CreatorDashboard() {
         creatorAddress: MOCK_WALLET_ADDRESS,
         title: dashboardData.recentPost.title,
         description: '',
-        thumbnailUrl:
-          dashboardData.recentPost.mediaUrls.length > 0
-            ? dashboardData.recentPost.mediaUrls[0]
-            : undefined,
-        contentType: dashboardData.recentPost.mediaType as
-          | 'video'
-          | 'audio'
-          | 'image'
-          | 'text',
+        thumbnailUrl: getWalrusUrl(
+          dashboardData.recentPost.previewId || dashboardData.recentPost.exclusiveId
+        ),
+        contentType: mapContentTypeToMediaType(dashboardData.recentPost.contentType),
         tierIds: [],
         isPublic: dashboardData.recentPost.audience === 'free',
         createdAt: new Date(dashboardData.recentPost.createdAt),
@@ -123,8 +135,8 @@ export default function CreatorDashboard() {
         creatorAddress: MOCK_WALLET_ADDRESS,
         title: post.title,
         description: '',
-        thumbnailUrl: post.mediaUrls.length > 0 ? post.mediaUrls[0] : undefined,
-        contentType: post.mediaType as 'video' | 'audio' | 'image' | 'text',
+        thumbnailUrl: getWalrusUrl(post.previewId || post.exclusiveId),
+        contentType: mapContentTypeToMediaType(post.contentType),
         tierIds: [],
         isPublic: post.audience === 'free',
         createdAt: new Date(post.createdAt),

@@ -267,7 +267,7 @@ describe('Dashboard API', () => {
 
     // Check overview
     expect(data.overview.totalMembers).toBe(5); // 3 basic + 2 premium
-    expect(data.overview.totalRevenue).toBe('35.00'); // (3*5) + (2*10) = 35 SUI
+    expect(data.overview.totalRevenue).toBe('35000.00'); // (3*5000) + (2*10000) = 35000 USDC (using 6 decimal places)
 
     // Check activity
     expect(data.activity.commentsCount).toBe(0); // Not implemented yet
@@ -277,7 +277,9 @@ describe('Dashboard API', () => {
     // Check recent post
     expect(data.recentPost).toBeDefined();
     expect(data.recentPost.title).toBe('[TEST-DASHBOARD] Latest Post');
-    expect(data.recentPost.mediaType).toBe('video');
+    expect(data.recentPost.contentType).toBe('video/mp4');
+    expect(data.recentPost.exclusiveId).toBe('test_blob_1');
+    expect(data.recentPost.previewId).toBe('test_preview_1');
     expect(data.recentPost.audience).toBe('paid');
 
     // Check recent posts list
@@ -286,9 +288,15 @@ describe('Dashboard API', () => {
   });
 
   it('should use MOCK_WALLET_ADDRESS by default', async () => {
+    // Skip test if MOCK_WALLET_ADDRESS is not set
+    if (!process.env.MOCK_WALLET_ADDRESS) {
+      console.log('Skipping test: MOCK_WALLET_ADDRESS not set in .env');
+      return;
+    }
+
     // Check if mock creator exists, create if not
     let mockCreator = await prisma.creator.findUnique({
-      where: { address: process.env.MOCK_WALLET_ADDRESS! },
+      where: { address: process.env.MOCK_WALLET_ADDRESS },
     });
 
     const shouldCleanup = !mockCreator;
@@ -296,7 +304,7 @@ describe('Dashboard API', () => {
     if (!mockCreator) {
       mockCreator = await prisma.creator.create({
         data: {
-          address: process.env.MOCK_WALLET_ADDRESS!,
+          address: process.env.MOCK_WALLET_ADDRESS,
           profileId: '0xmock_profile_000000000000000000000000000000000000000000000000',
           name: 'mock-test-creator',
           bio: 'Mock test creator',
@@ -337,7 +345,7 @@ describe('Dashboard API', () => {
 
     const data = (await response.json()) as any;
     expect(data.recentPosts.length).toBe(1);
-    expect(data.recentPosts[0].mediaType).toBe('image');
+    expect(data.recentPosts[0].contentType).toBe('image/png');
   });
 
   it('should filter by time (7 days)', async () => {
@@ -462,7 +470,7 @@ describe('Dashboard API', () => {
     expect(imagePost.audience).toBe('free');
   });
 
-  it('should include media URLs', async () => {
+  it('should include media IDs', async () => {
     const response = await fetch(
       `http://localhost:3001/api/dashboard?creatorAddress=${testCreator.address}`
     );
@@ -472,9 +480,16 @@ describe('Dashboard API', () => {
     const data = (await response.json()) as any;
 
     const latestPost = data.recentPosts[0];
-    expect(Array.isArray(latestPost.mediaUrls)).toBe(true);
-    expect(latestPost.mediaUrls.length).toBeGreaterThan(0);
-    expect(latestPost.mediaUrls[0]).toContain('walrus-testnet.walrus.space');
+    expect(typeof latestPost.exclusiveId).toBe('string');
+    expect(latestPost.exclusiveId.length).toBeGreaterThan(0);
+    expect(latestPost.exclusiveId).not.toContain('walrus');
+    expect(latestPost.exclusiveId).not.toContain('http');
+    // previewId can be null or string
+    if (latestPost.previewId !== null) {
+      expect(typeof latestPost.previewId).toBe('string');
+      expect(latestPost.previewId).not.toContain('walrus');
+      expect(latestPost.previewId).not.toContain('http');
+    }
   });
 
   it('should not include draft posts in results', async () => {
@@ -531,8 +546,9 @@ describe('Dashboard API', () => {
     const post = data.recentPosts[0];
     expect(post).toHaveProperty('id');
     expect(post).toHaveProperty('title');
-    expect(post).toHaveProperty('mediaType');
-    expect(post).toHaveProperty('mediaUrls');
+    expect(post).toHaveProperty('contentType');
+    expect(post).toHaveProperty('exclusiveId');
+    expect(post).toHaveProperty('previewId');
     expect(post).toHaveProperty('audience');
     expect(post).toHaveProperty('tierNames');
     expect(post).toHaveProperty('createdAt');
@@ -541,8 +557,10 @@ describe('Dashboard API', () => {
 
     expect(typeof post.id).toBe('string');
     expect(typeof post.title).toBe('string');
-    expect(typeof post.mediaType).toBe('string');
-    expect(Array.isArray(post.mediaUrls)).toBe(true);
+    expect(typeof post.contentType).toBe('string');
+    expect(typeof post.exclusiveId).toBe('string');
+    // previewId can be null or string
+    expect(post.previewId === null || typeof post.previewId === 'string').toBe(true);
     expect(['free', 'paid']).toContain(post.audience);
     expect(Array.isArray(post.tierNames)).toBe(true);
     expect(typeof post.createdAt).toBe('string');

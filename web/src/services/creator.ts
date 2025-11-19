@@ -33,11 +33,12 @@ interface CreatorProfileApiResponse {
     id: string;
     title: string;
     description: string;
-    thumbnailUrl?: string;
+    contentType: string;           // Full MIME type
+    exclusiveId: string;           // Just the patch ID
+    previewId: string | null;      // Just the patch ID or null
     publishedAt: string; // ISO date string
     viewCount: number;
     likeCount: number;
-    contentType: string;
     isPublic: boolean;
   }>;
 }
@@ -131,7 +132,7 @@ function mapToCreatorProfileData(
     creatorAddress: creator.address,
     title: post.title,
     description: post.description,
-    thumbnailUrl: post.thumbnailUrl,
+    thumbnailUrl: getWalrusUrl(post.previewId || post.exclusiveId),
     contentType: normalizeContentType(post.contentType),
     blobId: undefined, // Not included in profile response
     tierIds: [], // Not included in profile response
@@ -156,14 +157,20 @@ function generateDefaultAvatar(address: string): string {
 }
 
 /**
- * Normalize content type to match frontend enum
+ * Construct Walrus URL from patch ID
+ */
+function getWalrusUrl(patchId: string): string {
+  return `https://aggregator.walrus-testnet.walrus.space/v1/blobs/by-quilt-patch-id/${patchId}`;
+}
+
+/**
+ * Normalize content type from MIME type to match frontend enum
  */
 function normalizeContentType(
   type: string
 ): "video" | "audio" | "image" | "text" {
-  const normalized = type.toLowerCase();
-  if (["video", "audio", "image", "text"].includes(normalized)) {
-    return normalized as "video" | "audio" | "image" | "text";
-  }
-  return "text"; // Default fallback
+  if (type.startsWith('video/')) return 'video';
+  if (type.startsWith('audio/')) return 'audio';
+  if (type.startsWith('image/')) return 'image';
+  return 'text'; // Default fallback
 }
