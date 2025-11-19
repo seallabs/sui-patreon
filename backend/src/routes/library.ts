@@ -9,6 +9,7 @@ import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
 import { toStandardUnit } from '../config/currency';
+import { getAllowedTiersForContents } from '../lib/content-tiers';
 
 const router = Router();
 
@@ -144,6 +145,10 @@ router.get('/:creatorAddress', async (req: Request, res: Response) => {
       prisma.content.count({ where: whereClause }),
     ]);
 
+    // Get allowed tiers for all content items
+    const contentIds = content.map((c) => c.id);
+    const tiersMap = await getAllowedTiersForContents(contentIds);
+
     // Manually fetch contentTiers for each content (no Prisma relations)
     const contentWithTiers = await Promise.all(
       content.map(async (item) => {
@@ -186,6 +191,7 @@ router.get('/:creatorAddress', async (req: Request, res: Response) => {
       isDraft: item.isDraft,
       viewCount: item.viewCount,
       likeCount: item.likeCount,
+      allowedTiers: tiersMap.get(item.id) || [],
     }));
 
     // Calculate pagination metadata

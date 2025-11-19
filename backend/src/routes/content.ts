@@ -7,6 +7,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
+import { getAllowedTiersForContent, getAllowedTiersForContents } from '../lib/content-tiers';
 
 const router = Router();
 
@@ -34,9 +35,14 @@ router.get('/:contentId', async (req: Request, res: Response) => {
 
     // If not found by contentId, try by database ID
     if (!content) {
-      content = await prisma.content.findUnique({
-        where: { id: contentId },
-      });
+      try {
+        content = await prisma.content.findUnique({
+          where: { id: contentId },
+        });
+      } catch (error) {
+        // Invalid UUID format - content doesn't exist
+        content = null;
+      }
     }
 
     if (!content) {
@@ -138,6 +144,14 @@ router.get('/:contentId', async (req: Request, res: Response) => {
       },
     });
 
+    // Fetch allowed tiers for main content and related posts
+    const allContentIds = [
+      content.id,
+      ...relatedPosts.map((p) => p.id),
+      ...popularPosts.map((p) => p.id),
+    ];
+    const tiersMap = await getAllowedTiersForContents(allContentIds);
+
     // Build response with proper access control
     const response = {
       content: {
@@ -154,6 +168,7 @@ router.get('/:contentId', async (req: Request, res: Response) => {
         likeCount: content.likeCount,
         publishedAt: content.publishedAt,
         createdAt: content.createdAt,
+        allowedTiers: tiersMap.get(content.id) || [],
       },
       creator: {
         id: creator.id,
@@ -177,6 +192,7 @@ router.get('/:contentId', async (req: Request, res: Response) => {
         publishedAt: post.publishedAt,
         viewCount: post.viewCount,
         likeCount: post.likeCount,
+        allowedTiers: tiersMap.get(post.id) || [],
       })),
       popularPosts: popularPosts.map(post => ({
         id: post.id,
@@ -188,12 +204,14 @@ router.get('/:contentId', async (req: Request, res: Response) => {
         publishedAt: post.publishedAt,
         viewCount: post.viewCount,
         likeCount: post.likeCount,
+        allowedTiers: tiersMap.get(post.id) || [],
       })),
     };
 
     res.json(jsonResponse(response));
   } catch (error) {
     console.error('Error fetching content:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     res.status(500).json({
       error: 'Internal server error',
     });

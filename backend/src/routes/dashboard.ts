@@ -9,6 +9,7 @@ import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
 import { formatCurrency } from '../config/currency';
+import { getAllowedTiersForContents, type AllowedTier } from '../lib/content-tiers';
 
 const router = Router();
 
@@ -36,6 +37,7 @@ interface RecentPost {
   createdAt: string;
   viewCount: number;
   likeCount: number;
+  allowedTiers: AllowedTier[];
 }
 
 interface ContentListItem {
@@ -49,6 +51,7 @@ interface ContentListItem {
   createdAt: string;
   viewCount: number;
   likeCount: number;
+  allowedTiers: AllowedTier[];
 }
 
 interface DashboardResponse {
@@ -285,6 +288,10 @@ async function getRecentPost(creatorId: string): Promise<RecentPost | null> {
     where: { contentId: content.id },
   });
 
+  // Get allowed tiers details
+  const tiersMap = await getAllowedTiersForContents([content.id]);
+  const allowedTiers = tiersMap.get(content.id) || [];
+
   const { exclusiveId, previewId } = getMediaIds(content.sealedPatchId, content.previewPatchId);
 
   return {
@@ -297,6 +304,7 @@ async function getRecentPost(creatorId: string): Promise<RecentPost | null> {
     createdAt: (content.publishedAt || content.createdAt).toISOString(),
     viewCount: content.viewCount,
     likeCount: content.likeCount,
+    allowedTiers,
   };
 }
 
@@ -403,6 +411,9 @@ async function getRecentPosts(params: {
     tierMap.set(t.id, t.name);
   });
 
+  // Get allowed tiers for all content items
+  const tiersDetailsMap = await getAllowedTiersForContents(contentIds);
+
   // Map content to response format and apply tier filtering
   const allPosts: ContentListItem[] = [];
 
@@ -415,6 +426,7 @@ async function getRecentPosts(params: {
     }
 
     const tierNames = itemTierIds.map((tid) => tierMap.get(tid) || 'Unknown');
+    const allowedTiers = tiersDetailsMap.get(item.id) || [];
     const { exclusiveId, previewId } = getMediaIds(item.sealedPatchId, item.previewPatchId);
 
     allPosts.push({
@@ -428,6 +440,7 @@ async function getRecentPosts(params: {
       createdAt: (item.publishedAt || item.createdAt).toISOString(),
       viewCount: item.viewCount,
       likeCount: item.likeCount,
+      allowedTiers,
     });
   }
 

@@ -9,6 +9,7 @@ import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
 import { toStandardUnit } from '../config/currency';
+import { getAllowedTiersForContents } from '../lib/content-tiers';
 
 const router = Router();
 
@@ -50,6 +51,10 @@ router.get('/:address', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Get allowed tiers for all content items
+    const contentIds = contents.map((c) => c.id);
+    const tiersMap = await getAllowedTiersForContents(contentIds);
+
     // Fetch content tiers for each content
     const contentsWithTiers = await Promise.all(
       contents.map(async (content) => {
@@ -67,7 +72,11 @@ router.get('/:address', async (req: Request, res: Response) => {
           })
         );
 
-        return { ...content, contentTiers: contentTiersWithDetails };
+        return {
+          ...content,
+          contentTiers: contentTiersWithDetails,
+          allowedTiers: tiersMap.get(content.id) || [],
+        };
       })
     );
 
@@ -165,6 +174,10 @@ router.get('/:address/content', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Get allowed tiers for all content items
+    const contentIds = content.map((c) => c.id);
+    const tiersMap = await getAllowedTiersForContents(contentIds);
+
     // Manually fetch contentTiers for each content (no Prisma relations)
     const contentWithTiers = await Promise.all(
       content.map(async (item) => {
@@ -182,7 +195,11 @@ router.get('/:address/content', async (req: Request, res: Response) => {
           })
         );
 
-        return { ...item, contentTiers: contentTiersWithDetails };
+        return {
+          ...item,
+          contentTiers: contentTiersWithDetails,
+          allowedTiers: tiersMap.get(item.id) || [],
+        };
       })
     );
 
@@ -344,6 +361,10 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       take: 5,
     });
 
+    // Get allowed tiers for all content items
+    const contentIds = recentPosts.map((p) => p.id);
+    const tiersMap = await getAllowedTiersForContents(contentIds);
+
     // Format posts response
     const formattedPosts = recentPosts.map((post) => ({
       id: post.id,
@@ -356,6 +377,7 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       viewCount: post.viewCount,
       likeCount: post.likeCount,
       isPublic: post.isPublic,
+      allowedTiers: tiersMap.get(post.id) || [],
     }));
 
     // Determine if creator has SuiNS name
