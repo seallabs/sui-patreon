@@ -13,19 +13,31 @@ const router = Router();
 /**
  * GET /api/content/:contentId
  *
- * Get content by Sui object ID
- * Includes: tiers and creator info
+ * Get detailed content information for content detail page
+ * Includes: content info, creator details, access control, related/popular posts
+ *
+ * Query params:
+ * - address (optional): User's Sui wallet address for access check
  *
  * @param contentId - Content's Sui object ID
- * @returns Content object with relations or 404
+ * @returns Content detail object with creator, access status, and related content
  */
 router.get('/:contentId', async (req: Request, res: Response) => {
   try {
     const { contentId } = req.params;
+    const { address } = req.query;
 
-    const content = await prisma.content.findUnique({
+    // Try to find content by either database ID (UUID) or contentId (Sui object ID)
+    let content = await prisma.content.findUnique({
       where: { contentId },
     });
+
+    // If not found by contentId, try by database ID
+    if (!content) {
+      content = await prisma.content.findUnique({
+        where: { id: contentId },
+      });
+    }
 
     if (!content) {
       return res.status(404).json({
@@ -38,22 +50,148 @@ router.get('/:contentId', async (req: Request, res: Response) => {
       where: { id: content.creatorId },
     });
 
-    // Manually fetch contentTiers (no Prisma relations)
-    const contentTiers = await prisma.contentTier.findMany({
-      where: { contentId: content.id },
+    if (!creator) {
+      return res.status(404).json({
+        error: 'Creator not found',
+      });
+    }
+
+    // Check if user has access to this content
+    let isSubscribed = false;
+
+    if (address && typeof address === 'string') {
+      // Fetch content tier requirements
+      const contentTiers = await prisma.contentTier.findMany({
+        where: { contentId: content.id },
+        select: { tierId: true },
+      });
+
+      // If content is public or has no tier requirements, everyone has access
+      if (content.isPublic || contentTiers.length === 0) {
+        isSubscribed = true;
+      } else {
+        // Check for active subscription to any required tier
+        const requiredTierIds = contentTiers.map(ct => ct.tierId);
+        const activeSubscription = await prisma.subscription.findFirst({
+          where: {
+            subscriber: address,
+            tierId: { in: requiredTierIds },
+            isActive: true,
+            startsAt: { lte: new Date() },
+            expiresAt: { gte: new Date() },
+          },
+        });
+
+        isSubscribed = !!activeSubscription;
+      }
+    } else {
+      // No address provided - only public content is accessible
+      isSubscribed = content.isPublic;
+    }
+
+    // Fetch related posts from the same creator (exclude current post)
+    const relatedPosts = await prisma.content.findMany({
+      where: {
+        creatorId: content.creatorId,
+        id: { not: content.id },
+        isDraft: false,
+        publishedAt: { not: null },
+      },
+      orderBy: { publishedAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        contentId: true,
+        title: true,
+        description: true,
+        contentType: true,
+        previewPatchId: true,
+        publishedAt: true,
+        viewCount: true,
+        likeCount: true,
+      },
     });
 
-    // Fetch tier details for each contentTier
-    const contentTiersWithDetails = await Promise.all(
-      contentTiers.map(async (ct) => {
-        const tier = await prisma.tier.findUnique({
-          where: { id: ct.tierId },
-        });
-        return { ...ct, tier };
-      })
-    );
+    // Fetch popular posts from the same creator (most liked/viewed)
+    const popularPosts = await prisma.content.findMany({
+      where: {
+        creatorId: content.creatorId,
+        id: { not: content.id },
+        isDraft: false,
+        publishedAt: { not: null },
+      },
+      orderBy: [
+        { likeCount: 'desc' },
+        { viewCount: 'desc' },
+      ],
+      take: 5,
+      select: {
+        id: true,
+        contentId: true,
+        title: true,
+        description: true,
+        contentType: true,
+        previewPatchId: true,
+        publishedAt: true,
+        viewCount: true,
+        likeCount: true,
+      },
+    });
 
-    res.json(jsonResponse({ ...content, creator, contentTiers: contentTiersWithDetails }));
+    // Build response with proper access control
+    const response = {
+      content: {
+        id: content.id,
+        contentId: content.contentId,
+        title: content.title,
+        description: content.description,
+        contentType: content.contentType,
+        previewId: content.previewPatchId,
+        // Only include exclusive content if user has access
+        exclusiveId: isSubscribed ? content.sealedPatchId : null,
+        isLocked: !isSubscribed,
+        viewCount: content.viewCount,
+        likeCount: content.likeCount,
+        publishedAt: content.publishedAt,
+        createdAt: content.createdAt,
+      },
+      creator: {
+        id: creator.id,
+        address: creator.address,
+        suinsName: creator.name.endsWith('.sui') ? creator.name : undefined,
+        displayName: creator.name,
+        bio: creator.bio,
+        avatarUrl: creator.avatarUrl,
+        coverImageUrl: creator.coverImageUrl,
+        category: creator.category,
+        isVerified: creator.isVerified,
+      },
+      isSubscribed,
+      relatedPosts: relatedPosts.map(post => ({
+        id: post.id,
+        contentId: post.contentId,
+        title: post.title,
+        description: post.description,
+        contentType: post.contentType,
+        previewId: post.previewPatchId,
+        publishedAt: post.publishedAt,
+        viewCount: post.viewCount,
+        likeCount: post.likeCount,
+      })),
+      popularPosts: popularPosts.map(post => ({
+        id: post.id,
+        contentId: post.contentId,
+        title: post.title,
+        description: post.description,
+        contentType: post.contentType,
+        previewId: post.previewPatchId,
+        publishedAt: post.publishedAt,
+        viewCount: post.viewCount,
+        likeCount: post.likeCount,
+      })),
+    };
+
+    res.json(jsonResponse(response));
   } catch (error) {
     console.error('Error fetching content:', error);
     res.status(500).json({

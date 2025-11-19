@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
 import { Play, Heart, Eye, Lock } from "lucide-react";
 import { Content } from "@/types";
 import { formatNumber, formatRelativeTime } from "@/lib/utils";
@@ -20,7 +23,8 @@ export function ContentCard({ content }: ContentCardProps) {
   };
 
   return (
-    <div className="group overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg">
+    <Link href={`/content/${content.id}`}>
+      <div className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg">
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         {content.thumbnailUrl ? (
@@ -76,5 +80,6 @@ export function ContentCard({ content }: ContentCardProps) {
         </div>
       </div>
     </div>
+    </Link>
   );
 }

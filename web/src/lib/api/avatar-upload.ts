@@ -56,7 +56,7 @@ export async function uploadAvatar(file: File): Promise<string> {
     const base64 = await fileToBase64(file);
 
     // Get backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
     // Upload to backend
     const response = await fetch(`${backendUrl}/api/avatar/upload`, {
@@ -98,6 +98,6 @@ export async function uploadAvatar(file: File): Promise<string> {
  * @returns Full URL to avatar image
  */
 export function getAvatarUrl(filename: string): string {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   return `${backendUrl}/api/avatar/${filename}`;
 }
