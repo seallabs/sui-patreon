@@ -210,7 +210,7 @@ describe('Sui Event Indexer', () => {
           title: 'Test Content',
           description: 'Test description',
           contentType: 'video/mp4',
-          walrusBlobId: '0xblob1',
+          sealedPatchId: '0xblob1',
           isPublic: false,
         },
       });

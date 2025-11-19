@@ -277,7 +277,7 @@ async function getRecentPost(creatorId: string): Promise<RecentPost | null> {
     where: { contentId: content.id },
   });
 
-  const mediaUrls = getMediaUrls(content.walrusBlobId, content.previewBlobId);
+  const mediaUrls = getMediaUrls(content.sealedPatchId, content.previewPatchId);
 
   return {
     id: content.id,
@@ -406,7 +406,7 @@ async function getRecentPosts(params: {
     }
 
     const tierNames = itemTierIds.map((tid) => tierMap.get(tid) || 'Unknown');
-    const mediaUrls = getMediaUrls(item.walrusBlobId, item.previewBlobId);
+    const mediaUrls = getMediaUrls(item.sealedPatchId, item.previewPatchId);
 
     allPosts.push({
       id: item.id,
@@ -446,17 +446,17 @@ function mapContentTypeToMediaType(contentType: string): string {
 }
 
 /**
- * Get media URLs from Walrus blob IDs
+ * Get media URLs from Walrus patch IDs
  */
-function getMediaUrls(walrusBlobId: string, previewBlobId: string | null): string[] {
+function getMediaUrls(sealedPatchId: string, previewPatchId: string | null): string[] {
   const baseUrl = 'https://aggregator.walrus-testnet.walrus.space/v1';
   const urls: string[] = [];
 
-  if (previewBlobId) {
-    urls.push(`${baseUrl}/${previewBlobId}`);
+  if (previewPatchId) {
+    urls.push(`${baseUrl}/${previewPatchId}`);
   }
 
-  urls.push(`${baseUrl}/${walrusBlobId}`);
+  urls.push(`${baseUrl}/${sealedPatchId}`);
 
   return urls;
 }

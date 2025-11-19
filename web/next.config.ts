@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "aggregator.walrus-testnet.walrus.space",
       },
+      {
+        protocol: "https",
+        hostname: "**",
+      },
     ],
   },
 };

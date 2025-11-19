@@ -219,7 +219,7 @@ async function main() {
         title: 'M2M Test Content',
         description: 'Test',
         contentType: 'text/plain',
-        walrusBlobId: 'blob_test',
+        sealedPatchId: 'blob_test',
       },
     });
 

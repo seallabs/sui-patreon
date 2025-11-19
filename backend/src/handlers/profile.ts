@@ -17,10 +17,12 @@ export async function handleProfileCreated(
   eventSeq: string
 ): Promise<void> {
   try {
-    const { profile_id, creator, name } = event.parsedJson as {
+    const { profile_id, creator, name, bio, avatar_url, timestamp } = event.parsedJson as {
       profile_id: string;
       creator: string;
       name: string;
+      bio: string;
+      avatar_url: string;
       timestamp: string;
     };
 
@@ -32,12 +34,15 @@ export async function handleProfileCreated(
       update: {
         profileId: profile_id,
         name: name,
+        bio: bio,
+        avatarUrl: avatar_url || null,
       },
       create: {
         address: creator,
         profileId: profile_id,
         name: name,
-        bio: '',
+        bio: bio,
+        avatarUrl: avatar_url || null,
       },
     });
 

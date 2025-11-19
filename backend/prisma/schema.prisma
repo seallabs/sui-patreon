@@ -67,20 +67,20 @@ model Subscription {
 
 // Content model - Content pieces created by creators
 model Content {
-  id            String    @id @default(uuid()) @db.Uuid
-  contentId     String    @unique // Sui object ID for on-chain content
-  creatorId     String    @db.Uuid // Reference to Creator.id (no foreign key)
-  title         String
-  description   String    @default("")
-  contentType   String // MIME type (e.g., "video/mp4", "image/png", "text/markdown")
-  walrusBlobId  String // Walrus blob ID for encrypted content
-  previewBlobId String? // Optional Walrus blob ID for public preview
-  isPublic      Boolean   @default(false) // If true, accessible without subscription
-  isDraft       Boolean   @default(false) // If true, content is unpublished draft
-  publishedAt   DateTime? // Publication timestamp (null if draft)
-  viewCount     Int       @default(0) // Number of views
-  likeCount     Int       @default(0) // Number of likes
-  createdAt     DateTime  @default(now())
+  id             String    @id @default(uuid()) @db.Uuid
+  contentId      String    @unique // Sui object ID for on-chain content
+  creatorId      String    @db.Uuid // Reference to Creator.id (no foreign key)
+  title          String
+  description    String    @default("")
+  contentType    String // MIME type (e.g., "video/mp4", "image/png", "text/markdown")
+  sealedPatchId  String // Walrus sealed patch ID for encrypted content
+  previewPatchId String? // Optional Walrus preview patch ID for public preview
+  isPublic       Boolean   @default(false) // If true, accessible without subscription
+  isDraft        Boolean   @default(false) // If true, content is unpublished draft
+  publishedAt    DateTime? // Publication timestamp (null if draft)
+  viewCount      Int       @default(0) // Number of views
+  likeCount      Int       @default(0) // Number of likes
+  createdAt      DateTime  @default(now())
 
   // Indexes for performance
   @@index([creatorId])

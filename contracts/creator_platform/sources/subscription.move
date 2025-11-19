@@ -27,14 +27,26 @@ public struct TierCreated has copy, drop {
     tier_id: ID,
     creator: address,
     name: String,
+    description: String,
     price: u64,
+    is_active: bool,
+    created_at: u64,
 }
 
 /// Event emitted when a tier's price is updated
 public struct TierPriceUpdated has copy, drop {
     tier_id: ID,
+    creator: address,
     old_price: u64,
     new_price: u64,
+    timestamp: u64,
+}
+
+/// Event emitted when a tier is deactivated
+public struct TierDeactivated has copy, drop {
+    tier_id: ID,
+    creator: address,
+    timestamp: u64,
 }
 
 /// Event emitted when a subscription is purchased
@@ -43,7 +55,9 @@ public struct SubscriptionPurchased has copy, drop {
     subscriber: address,
     creator: address,
     tier_id: ID,
+    tier_name: String,
     amount: u64,
+    started_at: u64,
     expires_at: u64,
 }
 
@@ -97,13 +111,14 @@ public fun create_tier(
     assert!(price_monthly > 0, EInvalidPrice);
 
     let creator = ctx.sender();
+    let created_at = clock.timestamp_ms();
     let tier = Tier {
         id: object::new(ctx),
         name,
         description,
         price_monthly,
         is_active: true,
-        created_at: clock.timestamp_ms(),
+        created_at,
     };
 
     if (!registry.tiers.contains(creator)) {
@@ -114,7 +129,10 @@ public fun create_tier(
         tier_id: object::id(&tier),
         creator,
         name: tier.name,
+        description: tier.description,
         price: price_monthly,
+        is_active: tier.is_active,
+        created_at,
     });
 
     let tiers = registry.tiers.borrow_mut(creator);
@@ -127,6 +145,7 @@ public fun update_tier_price(
     registry: &mut TierRegistry,
     tier_id: ID,
     new_price: u64,
+    clock: &Clock,
     ctx: &TxContext,
 ) {
     let creator = ctx.sender();
@@ -139,7 +158,37 @@ public fun update_tier_price(
 
     let old_price = tier.price_monthly;
     tier.price_monthly = new_price;
-    event::emit(TierPriceUpdated { tier_id, old_price, new_price });
+    event::emit(TierPriceUpdated {
+        tier_id,
+        creator,
+        old_price,
+        new_price,
+        timestamp: clock.timestamp_ms(),
+    });
+}
+
+/// Deactivate a subscription tier
+/// Only the creator can deactivate their tier
+public fun deactivate_tier(
+    registry: &mut TierRegistry,
+    tier_id: ID,
+    clock: &Clock,
+    ctx: &TxContext,
+) {
+    let creator = ctx.sender();
+    assert!(registry.tiers.contains(creator), ENotCreator);
+
+    let tiers = registry.tiers.borrow_mut(creator);
+    assert!(tiers.contains(&tier_id), ETierNotFound);
+    let tier = tiers.get_mut(&tier_id);
+
+    tier.is_active = false;
+
+    event::emit(TierDeactivated {
+        tier_id,
+        creator,
+        timestamp: clock.timestamp_ms(),
+    });
 }
 
 /// Purchase a subscription to a tier
@@ -182,7 +231,9 @@ public fun purchase_subscription(
         subscriber: ctx.sender(),
         creator,
         tier_id: object::id(tier),
+        tier_name: tier.name,
         amount: tier.price_monthly,
+        started_at,
         expires_at,
     });
 

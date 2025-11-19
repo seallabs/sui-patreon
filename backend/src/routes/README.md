@@ -69,8 +69,8 @@ Get a creator by their Sui wallet address.
       "title": "My First Post",
       "description": "...",
       "contentType": "text/markdown",
-      "walrusBlobId": "...",
-      "previewBlobId": "...",
+      "sealedPatchId": "...",
+      "previewPatchId": "...",
       "isPublic": false,
       "createdAt": "2025-01-18T...",
       "contentTiers": [
@@ -137,7 +137,7 @@ Get all content for a specific creator.
     "title": "Content Title",
     "description": "...",
     "contentType": "video/mp4",
-    "walrusBlobId": "...",
+    "sealedPatchId": "...",
     "isPublic": false,
     "createdAt": "2025-01-18T...",
     "contentTiers": [
@@ -256,8 +256,8 @@ Get content by its Sui object ID.
   "title": "My Video Tutorial",
   "description": "Learn how to...",
   "contentType": "video/mp4",
-  "walrusBlobId": "walrus_blob_123",
-  "previewBlobId": "walrus_preview_456",
+  "sealedPatchId": "walrus_blob_123",
+  "previewPatchId": "walrus_preview_456",
   "isPublic": false,
   "createdAt": "2025-01-18T...",
   "creator": {

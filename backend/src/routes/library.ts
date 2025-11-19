@@ -179,8 +179,8 @@ router.get('/:creatorAddress', async (req: Request, res: Response) => {
         ? Number(item.contentTiers[0].tier.price) / 1_000_000_000 // Convert MIST to SUI
         : undefined,
       postType: mapContentTypeToPostType(item.contentType),
-      thumbnailUrl: item.previewBlobId
-        ? `https://aggregator.walrus-testnet.walrus.space/v1/${item.previewBlobId}`
+      thumbnailUrl: item.previewPatchId
+        ? `https://aggregator.walrus-testnet.walrus.space/v1/${item.previewPatchId}`
         : undefined,
       isDraft: item.isDraft,
       viewCount: item.viewCount,

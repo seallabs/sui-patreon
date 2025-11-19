@@ -2,6 +2,37 @@
 
 A decentralized creator subscription platform built on Sui blockchain, enabling creators to monetize content through tiered subscriptions with access control.
 
+## 🆕 Recent Updates (2025-11-19)
+
+### Profile Module Changes
+- ✅ **Reverted to explicit profile fields**: Changed from `info: vector<u8>` to structured fields (`name`, `bio`, `avatar_url`, `created_at`)
+- ✅ **Complete event data**: `ProfileCreated` now includes ALL profile fields (bio, avatar_url) for off-chain indexing
+- ✅ **Enhanced events**: `ProfileUpdated` includes all updated profile data
+- ✅ **Added view functions**: `name()`, `bio()`, `avatar_url()`, `created_at()` for querying profile data
+
+### Subscription Module Changes
+- ✅ **Added tier deactivation**: New `deactivate_tier()` function allows creators to disable tiers
+- ✅ **Added TierDeactivated event**: Emitted when a tier is deactivated
+- ✅ **Enhanced TierCreated event**: Includes `description`, `is_active`, and `created_at` fields for complete indexing
+- ✅ **Enhanced TierPriceUpdated event**: Now includes `creator` and `timestamp` for complete indexing
+- ✅ **Enhanced SubscriptionPurchased event**: Includes `tier_name` and `started_at` to avoid tier lookups in indexer
+
+### Content Module Changes
+- ✅ **Field naming consistency**: Using `sealed_patch_id` and `preview_patch_id` (aligned with Walrus terminology)
+- ✅ **Simplified public content**: `is_public` removed from events, derived from `tier_ids.length === 0`
+
+### Design Principle: Complete Event Data
+⚠️ **All events include complete data** - Events contain ALL necessary fields for off-chain indexing without requiring additional on-chain queries
+
+### Breaking Changes
+⚠️ **Event structures have changed** - Backend indexers must parse additional fields
+⚠️ **Profile creation API changed** - Now requires individual parameters instead of encoded bytes
+⚠️ **TierPriceUpdated signature changed** - Now requires `clock` parameter
+
+See [Migration Summary](../../backend/MIGRATION_SUMMARY.md) for detailed migration guide.
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -18,19 +49,21 @@ A decentralized creator subscription platform built on Sui blockchain, enabling 
 
 The Creator Platform consists of three interconnected Move modules that work together to provide a complete subscription-based content platform:
 
-- **Profile Module**: Creator identity and profile management
-- **Subscription Module**: Tiered subscription system with payment processing
-- **Content Module**: Content hosting with tier-based access control
+- **Profile Module**: Creator identity and profile management using a shared registry
+- **Subscription Module**: Tiered subscription system with USDC payment processing
+- **Content Module**: Content hosting with tier-based access control and Seal integration
 
 ### Key Features
 
-✅ Creator profiles with metadata (name, bio, avatar)
-✅ Flexible subscription tiers with custom pricing
+✅ Creator profiles stored in a shared registry
+✅ Flexible subscription tiers with custom USDC pricing
 ✅ Automated 30-day subscription periods
-✅ Tier-based content access control
-✅ Integration-ready with Walrus (decentralized storage) and Seal (encryption)
+✅ Tier-based content access control via Seal
+✅ Integration with Walrus (decentralized storage via patches)
+✅ Integration with Seal (encryption and access policy verification)
 ✅ Event emission for off-chain indexing
 ✅ Programmable transaction support
+✅ Gas-efficient registry-based architecture
 
 ## 🏗️ Architecture
 
@@ -77,53 +110,66 @@ graph TB
 
 ```mermaid
 classDiagram
-    class Profile {
+    class ProfileRegistry {
         +UID id
-        +address creator
-        +String name
-        +String bio
-        +String avatar_url
-        +u64 created_at
-        +create_profile()
-        +update_profile()
+        +Table~address, CreatorProfile~ profiles
     }
 
-    class SubscriptionTier {
+    class CreatorProfile {
+        +vector~u8~ info
+        +u64 created_at
+    }
+
+    class TierRegistry {
         +UID id
-        +address creator
+        +Table~address, VecMap~ID, Tier~~ tiers
+    }
+
+    class Tier {
+        +UID id
         +String name
+        +String description
         +u64 price_monthly
         +bool is_active
-        +create_tier()
-        +update_tier_price()
-        +deactivate_tier()
+        +u64 created_at
     }
 
     class ActiveSubscription {
         +UID id
-        +address subscriber
         +address creator
         +ID tier_id
+        +u64 started_at
         +u64 expires_at
-        +purchase_subscription()
-        +is_subscription_active()
+        +creator()
+        +tier_id()
+        +expires_at()
+    }
+
+    class ContentRegistry {
+        +UID id
+        +Table~address, vector~ID~~ contents
     }
 
     class Content {
         +UID id
         +address creator
-        +String walrus_blob_id
-        +vector~ID~ required_tier_ids
-        +bool is_public
-        +create_content()
-        +verify_access()
+        +u64 nonce
+        +String title
+        +String description
+        +String content_type
+        +String preview_patch_id
+        +String sealed_patch_id
+        +vector~ID~ tier_ids
+        +u64 created_at
         +seal_approve()
     }
 
-    Profile "1" --> "N" SubscriptionTier : creates
-    SubscriptionTier "1" --> "N" ActiveSubscription : generates
-    Content "N" --> "N" SubscriptionTier : requires
-    ActiveSubscription "1" --> "1" Content : grants access to
+    ProfileRegistry "1" --> "N" CreatorProfile : stores
+    TierRegistry "1" --> "N" Tier : stores
+    Tier "1" --> "N" ActiveSubscription : generates
+    ContentRegistry "1" --> "N" Content : stores
+    Content "N" --> "N" Tier : requires
+    ActiveSubscription "1" --> "N" Content : grants access to
 ```
 
 ## 📦 Modules
@@ -134,26 +180,31 @@ Manages creator identities on the platform.
 
 #### Objects
 
-**CreatorProfile** (has key, store)
+**ProfileRegistry** (has key)
+- Shared object storing all creator profiles
+- Maps creator addresses to their profiles
+
+**CreatorProfile** (has store)
 - Represents a creator's identity
-- Owned by the creator (NFT)
-- Stores profile metadata
+- Stored in the registry
+- Contains explicit profile fields: name, bio, avatar_url, created_at
 
 #### Core Functions
 
 | Function | Visibility | Description |
 |----------|-----------|-------------|
-| `create_profile()` | public | Creates a new creator profile |
-| `update_profile()` | public | Updates bio and avatar (owner-only) |
-| `creator()` | public | Returns profile creator address |
-| `name()` | public | Returns profile name |
-| `bio()` | public | Returns profile bio |
-| `avatar_url()` | public | Returns avatar URL |
+| `create_profile()` | public | Creates a new creator profile with name, bio, avatar_url |
+| `update_profile()` | public | Updates profile fields: name, bio, avatar_url (owner-only) |
+| `name()` | public | Returns creator's name |
+| `bio()` | public | Returns creator's bio |
+| `avatar_url()` | public | Returns creator's avatar URL |
+| `created_at()` | public | Returns profile creation timestamp |
 
 #### Error Codes
 
-- `ENotOwner (0)`: Caller is not the profile owner
-- `EInvalidName (1)`: Profile name is empty
+- `EProfileAlreadyExists (0)`: Profile already exists for this creator
+- `EProfileNotFound (1)`: Profile not found in registry
+- `EInvalidName (2)`: Profile name is empty
 
 ---
 
@@ -163,12 +214,16 @@ Implements the subscription tier system and payment processing.
 
 #### Objects
 
-**SubscriptionTier** (has key, store)
+**TierRegistry** (has key)
+- Shared object storing all subscription tiers
+- Maps creator addresses to their tiers (VecMap of tier ID to Tier)
+
+**Tier** (has key, store)
 - Defines a subscription level
-- Can be shared or owned
+- Stored in the registry
 - Stores pricing and access rules
 
-**ActiveSubscription** (has key, store)
+**ActiveSubscription** (has key)
 - Represents an active subscription (NFT)
 - Owned by the subscriber
 - Contains expiration timestamp
@@ -177,32 +232,34 @@ Implements the subscription tier system and payment processing.
 
 | Function | Visibility | Description |
 |----------|-----------|-------------|
-| `create_tier()` | public | Creates a new subscription tier |
+| `create_tier()` | public | Creates a new subscription tier in the registry |
 | `update_tier_price()` | public | Updates tier pricing (creator-only) |
-| `deactivate_tier()` | public | Deactivates a tier (creator-only) |
-| `purchase_subscription()` | entry | Purchases a subscription (30-day duration) |
-| `is_subscription_active()` | public | Checks if subscription is not expired |
+| `deactivate_tier()` | public | Deactivates a tier (creator-only) - prevents new subscriptions |
+| `purchase_subscription()` | public | Purchases a subscription (30-day duration) |
+| `creator()` | public | Returns subscription creator address |
+| `tier_id()` | public | Returns subscription tier ID |
+| `expires_at()` | public | Returns subscription expiration timestamp |
 
 #### Constants
 
 ```move
-MIST_PER_SUI = 1_000_000_000
 MILLISECONDS_PER_DAY = 86_400_000
 SUBSCRIPTION_DURATION_DAYS = 30
 ```
 
-#### Helper Functions
-
-- `sui_to_mist()`: Converts SUI to MIST
-- `mist_to_sui()`: Converts MIST to SUI (rounds down)
-
 #### Error Codes
 
 - `ENotCreator (0)`: Caller is not the tier creator
-- `EInvalidPrice (1)`: Price is zero or invalid
-- `ETierInactive (2)`: Tier is deactivated
-- `EInvalidName (3)`: Tier name is empty
-- `EInsufficientPayment (4)`: Payment amount too low
+- `ETierNotFound (1)`: Tier not found in registry
+- `EInvalidPrice (2)`: Price is zero or invalid
+- `ETierInactive (3)`: Tier is deactivated
+- `EInvalidName (4)`: Tier name is empty
+- `EInsufficientFunds (5)`: Payment amount too low
+
+#### Payment
+
+- Uses USDC tokens for subscription payments
+- Payments are transferred directly to the creator
 
 ---
 
@@ -212,25 +269,32 @@ Manages content metadata and tier-based access control.
 
 #### Objects
 
+**ContentRegistry** (has key)
+- Shared object storing all content metadata
+- Maps creator addresses to their content IDs
+
 **Content** (has key)
 - Shared object for public metadata viewing
-- Contains Walrus blob IDs
-- Defines access requirements
+- Contains Walrus patch IDs (preview and sealed)
+- Defines access requirements via tier IDs
+- Includes nonce for unique identification
 
 #### Core Functions
 
 | Function | Visibility | Description |
 |----------|-----------|-------------|
-| `create_content()` | entry | Registers new content with Walrus blob IDs |
-| `verify_access()` | public | Checks if subscription grants access |
+| `create_content()` | public | Registers new content with Walrus patch IDs |
 | `seal_approve()` | entry | Entry point for Seal decryption approval |
+| `check_policy()` | private | Internal function to verify access |
 
 #### Access Control Logic
 
 ```move
-verify_access() returns true if:
-  - Content is public, OR
-  - Subscription is active AND tier matches requirements
+check_policy() returns true if:
+  - ID matches content creator and nonce, AND
+  - Subscription is for the correct creator, AND
+  - Subscription is not expired, AND
+  - (Content has no tier requirements OR subscription tier is in required tiers)
 ```
 
 #### Error Codes
@@ -239,28 +303,43 @@ verify_access() returns true if:
 
 ## 📊 Data Structures
 
+### ProfileRegistry
+
+```move
+public struct ProfileRegistry has key {
+    id: UID,
+    profiles: Table<address, CreatorProfile>,
+}
+```
+
 ### CreatorProfile
 
 ```move
-struct CreatorProfile has key, store {
-    id: UID,
-    creator: address,        // Profile owner
-    name: String,            // Display name
-    bio: String,             // Creator bio
+public struct CreatorProfile has store {
+    name: String,            // Creator name (e.g., "alice.sui")
+    bio: String,             // Creator bio/description
     avatar_url: String,      // Avatar image URL
     created_at: u64,         // Creation timestamp (ms)
 }
 ```
 
-### SubscriptionTier
+### TierRegistry
 
 ```move
-struct SubscriptionTier has key, store {
+public struct TierRegistry has key {
     id: UID,
-    creator: address,        // Tier creator
+    tiers: Table<address, VecMap<ID, Tier>>,
+}
+```
+
+### Tier
+
+```move
+public struct Tier has key, store {
+    id: UID,
     name: String,            // Tier name (e.g., "Gold", "Premium")
     description: String,     // Tier benefits
-    price_monthly: u64,      // Price in MIST (1 SUI = 1B MIST)
+    price_monthly: u64,      // Price in USDC
     is_active: bool,         // Can accept new subscriptions
     created_at: u64,         // Creation timestamp (ms)
 }
@@ -269,31 +348,38 @@ struct SubscriptionTier has key, store {
 ### ActiveSubscription
 
 ```move
-struct ActiveSubscription has key, store {
+public struct ActiveSubscription has key {
     id: UID,
-    subscriber: address,     // Subscription owner
     creator: address,        // Content creator
     tier_id: ID,             // Linked tier
-    tier_name: String,       // Cached tier name
     started_at: u64,         // Subscription start (ms)
     expires_at: u64,         // Expiration timestamp (ms)
+}
+```
+
+### ContentRegistry
+
+```move
+public struct ContentRegistry has key {
+    id: UID,
+    contents: Table<address, vector<ID>>,
 }
 ```
 
 ### Content
 
 ```move
-struct Content has key {
+public struct Content has key {
     id: UID,
     creator: address,              // Content creator
+    nonce: u64,                    // Unique nonce for identification
     title: String,                 // Content title
     description: String,           // Content description
     content_type: String,          // MIME type (e.g., "video/mp4")
-    walrus_blob_id: String,        // Main content blob ID
-    preview_blob_id: String,       // Preview blob ID (optional)
-    required_tier_ids: vector<ID>, // Tiers with access (empty = public)
+    preview_patch_id: String,      // Preview patch ID in Walrus
+    sealed_patch_id: String,       // Sealed patch ID in Walrus
+    tier_ids: vector<ID>,          // Tiers with access (empty = public)
     created_at: u64,               // Creation timestamp (ms)
-    is_public: bool,               // Public access flag
 }
 ```
 
@@ -309,16 +395,16 @@ sequenceDiagram
     participant Content
     participant Walrus
 
-    Creator->>Profile: 1. create_profile(name, bio, avatar)
-    Profile-->>Creator: CreatorProfile NFT
+    Creator->>Profile: 1. create_profile(registry, name, bio, avatar_url, clock)
+    Profile-->>Creator: Profile stored in registry
 
-    Creator->>Subscription: 2. create_tier(name, price, desc)
-    Subscription-->>Creator: SubscriptionTier (shared)
+    Creator->>Subscription: 2. create_tier(registry, name, description, price, clock)
+    Subscription-->>Creator: Tier stored in registry
 
     Creator->>Walrus: 3. Upload encrypted content
-    Walrus-->>Creator: blob_id
+    Walrus-->>Creator: preview_patch_id, sealed_patch_id
 
-    Creator->>Content: 4. create_content(title, blob_id, tier_ids)
+    Creator->>Content: 4. create_content(registry, nonce, title, patch_ids, tier_ids, clock)
     Content-->>Creator: Content (shared)
 ```
 
@@ -330,13 +416,13 @@ sequenceDiagram
     participant Subscription
     participant Creator
 
-    User->>Subscription: 1. purchase_subscription(tier, payment)
+    User->>Subscription: 1. purchase_subscription(registry, creator, tier_id, payment, clock)
 
-    Subscription->>Subscription: 2. Verify tier is active
-    Subscription->>Subscription: 3. Verify payment amount
+    Subscription->>Subscription: 2. Verify tier exists and is active
+    Subscription->>Subscription: 3. Verify payment amount (USDC)
     Subscription->>Subscription: 4. Calculate expiry (30 days)
 
-    Subscription->>Creator: 5. Transfer payment
+    Subscription->>Creator: 5. Transfer USDC payment
     Subscription->>User: 6. Transfer ActiveSubscription NFT
 
     Subscription->>Subscription: 7. Emit SubscriptionPurchased event
@@ -352,20 +438,22 @@ sequenceDiagram
     participant Seal
     participant Walrus
 
-    User->>Content: 1. Request access (with ActiveSubscription)
+    User->>Content: 1. Call seal_approve(id, content, subscription, clock)
 
-    Content->>Content: 2. Check if content is public
-    alt Content is public
-        Content-->>User: Access granted
-    else Content requires tier
-        Content->>Subscription: 3. Verify subscription active
-        Content->>Content: 4. Check tier_id matches
+    Content->>Content: 2. Verify ID matches content (creator + nonce)
+    Content->>Content: 3. Verify subscription is for correct creator
+    Content->>Content: 4. Check subscription is not expired
+
+    alt Content has no tier requirements (public)
+        Content-->>Seal: Access granted
+    else Content requires specific tier
+        Content->>Content: 5. Check tier_id matches required tiers
 
         alt Access granted
-            Content->>Seal: 5. seal_approve() succeeds
-            Seal-->>User: 6. Decryption key
-            User->>Walrus: 7. Fetch encrypted blob
-            User->>User: 8. Decrypt content client-side
+            Content-->>Seal: 6. seal_approve() succeeds
+            Seal-->>User: 7. Decryption key
+            User->>Walrus: 8. Fetch encrypted patch
+            User->>User: 9. Decrypt content client-side
         else Access denied
             Content-->>User: Transaction aborts (EAccessDenied)
         end
@@ -382,17 +470,18 @@ stateDiagram-v2
     Active --> PriceUpdated: update_tier_price()
     PriceUpdated --> Active
 
-    Active --> Deactivated: deactivate_tier()
-    Deactivated --> [*]
+    Active --> Inactive: deactivate_tier()
+    Inactive --> [*]
 
     note right of Active
         Can accept new subscriptions
         Existing subscriptions unaffected
     end note
 
-    note right of Deactivated
+    note right of Inactive
         No new subscriptions allowed
         Existing subscriptions still valid
+        Deactivated via deactivate_tier() function
     end note
 ```
 
@@ -403,15 +492,21 @@ All events are emitted for off-chain indexing and frontend updates.
 ### Profile Events
 
 ```move
-struct ProfileCreated has copy, drop {
+public struct ProfileCreated has copy, drop {
     profile_id: ID,
     creator: address,
     name: String,
+    bio: String,           // Full profile data for indexing
+    avatar_url: String,    // Full profile data for indexing
     timestamp: u64,
 }
 
-struct ProfileUpdated has copy, drop {
+public struct ProfileUpdated has copy, drop {
     profile_id: ID,
+    creator: address,
+    name: String,
+    bio: String,
+    avatar_url: String,
     timestamp: u64,
 }
 ```
@@ -419,43 +514,55 @@ struct ProfileUpdated has copy, drop {
 ### Subscription Events
 
 ```move
-struct TierCreated has copy, drop {
+public struct TierCreated has copy, drop {
     tier_id: ID,
     creator: address,
     name: String,
+    description: String,
     price: u64,
+    is_active: bool,      // Always true on creation
+    created_at: u64,
 }
 
-struct TierPriceUpdated has copy, drop {
+public struct TierPriceUpdated has copy, drop {
     tier_id: ID,
+    creator: address,     // For indexing by creator
     old_price: u64,
     new_price: u64,
-    timestamp: u64,
+    timestamp: u64,       // When price was updated
 }
 
-struct TierDeactivated has copy, drop {
+public struct TierDeactivated has copy, drop {
     tier_id: ID,
+    creator: address,
     timestamp: u64,
 }
 
-struct SubscriptionPurchased has copy, drop {
+public struct SubscriptionPurchased has copy, drop {
     subscription_id: ID,
     subscriber: address,
     creator: address,
     tier_id: ID,
+    tier_name: String,    // For easy reference without tier lookup
     amount: u64,
-    expires_at: u64,
+    started_at: u64,      // Subscription start timestamp
+    expires_at: u64,      // Subscription end timestamp
 }
 ```
 
 ### Content Events
 
 ```move
-struct ContentCreated has copy, drop {
+public struct ContentCreated has copy, drop {
     content_id: ID,
     creator: address,
     title: String,
+    description: String,
+    content_type: String,
+    preview_patch_id: String,
+    sealed_patch_id: String,
     tier_ids: vector<ID>,
+    created_at: u64,
 }
 ```
 
@@ -478,23 +585,24 @@ const PACKAGE_ID = '0x...'; // Deployed package ID
 // Create a creator profile
 async function createProfile(
   keypair: Ed25519Keypair,
+  profileRegistryId: string,
+  clockId: string,
   name: string,
   bio: string,
   avatarUrl: string
 ) {
   const tx = new TransactionBlock();
 
-  const profile = tx.moveCall({
+  tx.moveCall({
     target: `${PACKAGE_ID}::profile::create_profile`,
     arguments: [
+      tx.object(profileRegistryId),
       tx.pure(name),
       tx.pure(bio),
       tx.pure(avatarUrl),
+      tx.object(clockId),
     ],
   });
-
-  // Transfer profile to sender
-  tx.transferObjects([profile], tx.pure(keypair.getPublicKey().toSuiAddress()));
 
   const result = await client.signAndExecuteTransactionBlock({
     signer: keypair,
@@ -507,27 +615,23 @@ async function createProfile(
 // Create a subscription tier
 async function createTier(
   keypair: Ed25519Keypair,
+  tierRegistryId: string,
+  clockId: string,
   name: string,
   description: string,
-  priceInSui: number
+  priceInUsdc: number // Price in USDC (6 decimals)
 ) {
   const tx = new TransactionBlock();
 
-  const priceInMist = priceInSui * 1_000_000_000;
-
-  const tier = tx.moveCall({
+  tx.moveCall({
     target: `${PACKAGE_ID}::subscription::create_tier`,
     arguments: [
+      tx.object(tierRegistryId),
       tx.pure(name),
       tx.pure(description),
-      tx.pure(priceInMist),
+      tx.pure(priceInUsdc),
+      tx.object(clockId),
     ],
-  });
-
-  // Share tier to allow public access
-  tx.moveCall({
-    target: '0x2::transfer::public_share_object',
-    arguments: [tier],
   });
 
   const result = await client.signAndExecuteTransactionBlock({
@@ -541,16 +645,22 @@ async function createTier(
 // Purchase a subscription
 async function purchaseSubscription(
   keypair: Ed25519Keypair,
+  tierRegistryId: string,
+  clockId: string,
+  creatorAddress: string,
   tierId: string,
-  paymentCoin: string
+  paymentCoin: string // USDC coin object
 ) {
   const tx = new TransactionBlock();
 
   tx.moveCall({
     target: `${PACKAGE_ID}::subscription::purchase_subscription`,
     arguments: [
-      tx.object(tierId),
+      tx.object(tierRegistryId),
+      tx.pure(creatorAddress),
+      tx.pure(tierId),
       tx.object(paymentCoin),
+      tx.object(clockId),
     ],
   });
 
@@ -565,26 +675,30 @@ async function purchaseSubscription(
 // Create content
 async function createContent(
   keypair: Ed25519Keypair,
+  contentRegistryId: string,
+  clockId: string,
+  nonce: number,
   title: string,
   description: string,
   contentType: string,
-  walrusBlobId: string,
-  previewBlobId: string,
-  requiredTierIds: string[],
-  isPublic: boolean
+  previewPatchId: string,
+  sealedPatchId: string,
+  requiredTierIds: string[]
 ) {
   const tx = new TransactionBlock();
 
   tx.moveCall({
     target: `${PACKAGE_ID}::content::create_content`,
     arguments: [
+      tx.object(contentRegistryId),
+      tx.pure(nonce),
       tx.pure(title),
       tx.pure(description),
       tx.pure(contentType),
-      tx.pure(walrusBlobId),
-      tx.pure(previewBlobId),
+      tx.pure(previewPatchId),
+      tx.pure(sealedPatchId),
       tx.pure(requiredTierIds),
-      tx.pure(isPublic),
+      tx.object(clockId),
     ],
   });
 
@@ -599,16 +713,20 @@ async function createContent(
 // Verify access for content (seal_approve)
 async function verifyAccess(
   keypair: Ed25519Keypair,
+  clockId: string,
   contentId: string,
-  subscriptionId: string
+  subscriptionId: string,
+  id: Uint8Array // BCS-encoded creator address and nonce
 ) {
   const tx = new TransactionBlock();
 
   tx.moveCall({
     target: `${PACKAGE_ID}::content::seal_approve`,
     arguments: [
+      tx.pure(Array.from(id)),
       tx.object(contentId),
       tx.object(subscriptionId),
+      tx.object(clockId),
     ],
   });
 
@@ -624,28 +742,55 @@ async function verifyAccess(
 ### Query Objects
 
 ```typescript
-// Get creator profiles by owner
-async function getCreatorProfile(address: string) {
-  const objects = await client.getOwnedObjects({
-    owner: address,
-    filter: {
-      StructType: `${PACKAGE_ID}::profile::CreatorProfile`
+// Get profile registry (shared object)
+async function getProfileRegistry() {
+  // Query for ProfileRegistry shared object
+  const result = await client.getObject({
+    id: PROFILE_REGISTRY_ID, // Known registry object ID
+    options: { showContent: true }
+  });
+
+  return result;
+}
+
+// Get creator profile from registry
+async function getCreatorProfile(
+  profileRegistryId: string,
+  creatorAddress: string
+) {
+  // Query dynamic field for specific creator
+  const result = await client.getDynamicFieldObject({
+    parentId: profileRegistryId,
+    name: {
+      type: 'address',
+      value: creatorAddress
     }
   });
 
-  return objects;
+  return result;
 }
 
-// Get active subscriptions by owner
+// Get active subscriptions owned by address
 async function getActiveSubscriptions(address: string) {
   const objects = await client.getOwnedObjects({
     owner: address,
     filter: {
       StructType: `${PACKAGE_ID}::subscription::ActiveSubscription`
-    }
+    },
+    options: { showContent: true }
   });
 
   return objects;
+}
+
+// Get tier registry (shared object)
+async function getTierRegistry() {
+  const result = await client.getObject({
+    id: TIER_REGISTRY_ID, // Known registry object ID
+    options: { showContent: true }
+  });
+
+  return result;
 }
 
 // Subscribe to profile creation events

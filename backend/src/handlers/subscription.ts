@@ -93,15 +93,16 @@ export async function handleTierPriceUpdated(
   eventSeq: string
 ): Promise<void> {
   try {
-    const { tier_id, old_price, new_price } = event.parsedJson as {
+    const { tier_id, creator, old_price, new_price, timestamp } = event.parsedJson as {
       tier_id: string;
+      creator: string;
       old_price: string;
       new_price: string;
       timestamp: string;
     };
 
     console.log(
-      `[TierPriceUpdated] Processing event for tier ${tier_id}: ${old_price} -> ${new_price}`
+      `[TierPriceUpdated] Processing event for tier ${tier_id}: ${old_price} -> ${new_price} by ${creator}`
     );
 
     // Retry logic to handle race condition where TierPriceUpdated arrives before TierCreated

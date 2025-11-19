@@ -68,7 +68,7 @@ async function seedTestData() {
               title: 'Test Content 1',
               description: 'First test content',
               contentType: 'text/markdown',
-              walrusBlobId: 'walrus_blob_1',
+              sealedPatchId: 'walrus_blob_1',
               isPublic: false,
             },
             {
@@ -76,7 +76,7 @@ async function seedTestData() {
               title: 'Public Content',
               description: 'Public test content',
               contentType: 'image/png',
-              walrusBlobId: 'walrus_blob_2',
+              sealedPatchId: 'walrus_blob_2',
               isPublic: true,
             },
           ],

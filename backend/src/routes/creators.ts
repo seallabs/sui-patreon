@@ -348,7 +348,7 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       id: post.id,
       title: post.title,
       description: post.description,
-      thumbnailUrl: post.previewBlobId ?? undefined,
+      thumbnailUrl: post.previewPatchId ?? undefined,
       publishedAt: post.publishedAt,
       viewCount: post.viewCount,
       likeCount: post.likeCount,

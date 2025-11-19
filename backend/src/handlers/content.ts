@@ -26,10 +26,9 @@ export async function handleContentCreated(
       title,
       description,
       content_type,
-      walrus_blob_id,
-      preview_blob_id,
+      sealed_patch_id,
+      preview_patch_id,
       tier_ids,
-      is_public,
       created_at,
     } = event.parsedJson as {
       content_id: string;
@@ -37,12 +36,14 @@ export async function handleContentCreated(
       title: string;
       description: string;
       content_type: string;
-      walrus_blob_id: string;
-      preview_blob_id: string;
+      sealed_patch_id: string;
+      preview_patch_id: string;
       tier_ids: string[];
-      is_public: boolean;
       created_at: string;
     };
+
+    // Derive isPublic from tier_ids (empty array means public)
+    const is_public = tier_ids.length === 0;
 
     console.log(
       `[ContentCreated] Processing event for content ${title} by creator ${creator}, type: ${content_type}, public: ${is_public}`
@@ -74,8 +75,8 @@ export async function handleContentCreated(
               title: title,
               description: description || '',
               contentType: content_type,
-              walrusBlobId: walrus_blob_id,
-              previewBlobId: preview_blob_id || null,
+              sealedPatchId: sealed_patch_id,
+              previewPatchId: preview_patch_id || null,
               isPublic: is_public,
               isDraft: false, // Content from chain is published
               publishedAt: new Date(Number(created_at)),
@@ -86,8 +87,8 @@ export async function handleContentCreated(
               title: title,
               description: description || '',
               contentType: content_type,
-              walrusBlobId: walrus_blob_id,
-              previewBlobId: preview_blob_id || null,
+              sealedPatchId: sealed_patch_id,
+              previewPatchId: preview_patch_id || null,
               isPublic: is_public,
               isDraft: false, // Content from chain is published
               publishedAt: new Date(Number(created_at)),

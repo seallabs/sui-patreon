@@ -1,451 +1,647 @@
-# Creator Platform CLI Scripts
+# Creator Platform CLI
 
-TypeScript-based CLI for testing and interacting with Creator Platform smart contracts on Sui blockchain.
+Command-line interface for interacting with Creator Platform smart contracts on Sui blockchain.
 
-## 📋 Prerequisites
+## Prerequisites
 
-- Node.js 18+ or Bun
-- Sui CLI installed and configured
-- A funded Sui wallet (testnet/mainnet)
-- Deployed Creator Platform smart contracts
+- **Bun** runtime installed ([https://bun.sh](https://bun.sh))
+- **Sui CLI** installed and configured ([https://docs.sui.io/guides/developer/getting-started/sui-install](https://docs.sui.io/guides/developer/getting-started/sui-install))
+- A **funded Sui wallet** with testnet SUI tokens
+- **USDC tokens** for subscription purchases (testnet USDC)
 
-## 🚀 Quick Start
+---
 
-### 1. Install Dependencies
+## Setup Guide
+
+### Step 1: Install Dependencies
 
 ```bash
 cd contracts/scripts
-npm install
-# or
 bun install
 ```
 
-### 2. Configure Environment
+### Step 2: Get Your Private Key
 
 ```bash
-# Copy example env file
-cp .env.example .env
-
-# Edit .env with your configuration
-nano .env
-```
-
-Set the following variables:
-
-```bash
-SUI_NETWORK=testnet
-PRIVATE_KEY=your_private_key_here
-PACKAGE_ID=deployed_package_id_here
-```
-
-### 3. Get Your Private Key
-
-Export your private key from Sui CLI:
-
-```bash
-# List your addresses
+# List your wallet addresses
 sui client addresses
 
-# Export private key for your active address
+# Export your private key (copy the entire output including 'suiprivkey1' prefix)
 sui keytool export --key-identity <your-address>
 ```
 
-Copy the **entire private key** (including the `suiprivkey1` prefix) to `.env`. Both Bech32 format (`suiprivkey1...`) and hex format (`0x...`) are supported.
-
-### 4. Deploy Contracts (if not already deployed)
+### Step 3: Deploy Contracts
 
 ```bash
+# Navigate to contracts directory
 cd ../creator_platform
+
+# Deploy to testnet
 sui client publish --gas-budget 100000000
 ```
 
-Save the `packageId` from the output and set it in `.env`.
+**Save these IDs from the deployment output:**
 
-### 5. Fund Your Wallet
+Look for "Published Objects" section and copy:
+- **Package ID** - The main package identifier
+- **ProfileRegistry** - Object with type `creator_platform::profile::ProfileRegistry`
+- **TierRegistry** - Object with type `creator_platform::subscription::TierRegistry`
+- **ContentRegistry** - Object with type `creator_platform::content::ContentRegistry`
 
-Get testnet SUI from the faucet:
+### Step 4: Configure Environment
 
 ```bash
+# Return to scripts directory
+cd ../scripts
+
+# Copy the example environment file
+cp .env.example .env
+
+# Edit the file
+nano .env
+```
+
+Fill in your values:
+
+```bash
+SUI_NETWORK=testnet
+PRIVATE_KEY=suiprivkey1qqqqqqqqqqqqq...  # From Step 2
+PACKAGE_ID=0x485d07bb4f59...             # From Step 3
+PROFILE_REGISTRY=0xff0c5345711b...       # From Step 3
+TIER_REGISTRY=0x31a69051a888...          # From Step 3
+CONTENT_REGISTRY=0x23a1da2b8269...       # From Step 3
+```
+
+### Step 5: Fund Your Wallet
+
+```bash
+# Get testnet SUI tokens
 sui client faucet
+
+# Check your balance
+sui client balance
 ```
 
-Or use the Discord faucet: https://discord.gg/sui
+For USDC tokens, you'll need to use a testnet faucet or DEX.
 
-## 📖 Usage
-
-> **Note for npm users**: When using `npm run cli`, you must add `--` before the command arguments to pass them correctly. For example: `npm run cli -- profile create --name "Alice"`. This is not required when using `bun run cli`.
-
-### Check Configuration
+### Step 6: Test Your Setup
 
 ```bash
-npm run cli -- info
-# or
-bun run cli info
+# View help
+bun start --help
+
+# View help for specific command
+bun start create-profile --help
 ```
 
-This displays your network, wallet address, and package ID.
+---
 
-### List Your SUI Coins
+## Available Commands
+
+### Profile Management
+
+#### Create Profile
+
+Create a new creator profile on the platform.
 
 ```bash
-npm run cli -- get-coins
+bun start create-profile "<name>" "<bio>" "<avatar-url>"
 ```
 
-This shows all your SUI coins with their IDs and balances (useful for payments).
+**Example:**
+```bash
+bun start create-profile \
+  "Alice Artist" \
+  "Digital creator specializing in NFT art" \
+  "https://example.com/alice-avatar.jpg"
+```
 
-## 🎭 Profile Commands
+**Output:**
+- Transaction digest
+- ProfileCreated event with ALL profile data (name, bio, avatar_url)
+- Profile is stored in the ProfileRegistry
 
-### Create a Profile
+**Note:** Each wallet address can only create one profile.
+
+---
+
+#### Create Subscription Tier
+
+Create a new subscription tier with custom pricing.
 
 ```bash
-npm run cli -- profile create \
-  --name "Alice Creator" \
-  --bio "Digital artist creating NFT collections" \
-  --avatar "https://example.com/avatar.jpg"
+bun start create-tier "<name>" "<description>" <price-in-usdc>
 ```
 
-### List Your Profiles
+**Examples:**
 
 ```bash
-npm run cli -- profile list
+# Basic tier - 2 USDC/month
+bun start create-tier \
+  "Basic" \
+  "Access to basic content and monthly updates" \
+  2000000
+
+# Premium tier - 10 USDC/month
+bun start create-tier \
+  "Premium" \
+  "All basic content + exclusive tutorials + early access" \
+  10000000
+
+# VIP tier - 50 USDC/month
+bun start create-tier \
+  "VIP" \
+  "Everything + 1-on-1 sessions and custom requests" \
+  50000000
 ```
 
-### Get Profile Details
+**Price Format:** USDC amount with 6 decimals
+- 1000000 = 1 USDC
+- 5000000 = 5 USDC
+- 10000000 = 10 USDC
+
+**Output:**
+- Transaction digest
+- TierCreated event with full tier details
+- Tier object ID (save this for later use)
+
+---
+
+#### Deactivate Tier
+
+Prevent new subscriptions to a tier while keeping existing ones valid.
 
 ```bash
-npm run cli -- profile get --id <profile-object-id>
+bun start deactivate-tier <tier-id>
 ```
 
-### Update Profile
+**Example:**
+```bash
+bun start deactivate-tier 0x31a69051a888504c7069776f11936d23575e453404d426de7155f2ab19f51591
+```
+
+**Effect:**
+- Sets tier `is_active = false`
+- No new subscriptions can be purchased
+- Existing subscriptions continue to work
+
+---
+
+### Subscription Purchase
+
+#### Purchase Subscription
+
+Subscribe to a creator's tier using USDC.
 
 ```bash
-npm run cli -- profile update \
-  --id <profile-object-id> \
-  --bio "Updated bio text" \
-  --avatar "https://example.com/new-avatar.jpg"
+bun start purchase <creator-address> <tier-id> <usdc-coin-id>
 ```
 
-## 💎 Subscription Commands
+**Finding Your USDC Coins:**
+```bash
+# List all your objects
+sui client objects
 
-### Create a Subscription Tier
+# Look for USDC coin objects
+# Copy one with sufficient balance
+```
+
+**Example:**
+```bash
+bun start purchase \
+  0xb7758e1461586bf8cc294a65aa10163b4623293b917464dc41eaea9bf25163ae \
+  0xc3f03fd51b2965756d91b0d90aea752cdd03d7d01f354e5d87bf233969186954 \
+  0x7d16fb30c527690e949bf939bf2b65180347007bf3a7b8bafb7027fbf6180805
+```
+
+**Output:**
+- Transaction digest
+- SubscriptionPurchased event with subscription details
+- ActiveSubscription NFT transferred to your wallet
+
+**Duration:** 30 days from purchase
+
+---
+
+### Content Management
+
+#### Register Content
+
+Register content that's already uploaded to Walrus with optional access control.
 
 ```bash
-npm run cli -- subscription create-tier \
-  --name "Gold Tier" \
-  --description "Access to exclusive content" \
-  --price 5.0
+bun start create-content <nonce> "<title>" "<description>" "<content-type>" "<sealed-patch-id>" "[preview-patch-id]" "[tier-ids]"
 ```
 
-The price is in SUI tokens (e.g., `5.0` = 5 SUI/month).
-
-### Get Tier Details
+**Examples:**
 
 ```bash
-npm run cli -- subscription get-tier --id <tier-object-id>
+# Public content (anyone can access)
+bun start create-content 1 \
+  "Free Tutorial" \
+  "Introduction to digital art" \
+  "video/mp4" \
+  "qhjKu_wiI33Zkvx1QpitD2INc6BphK5KdGits5MuwFcBAQACAA" \
+  "phjKu_preview123456789abcdefgh"
+
+# Premium tier only (single tier)
+bun start create-content 2 \
+  "Advanced Tutorial" \
+  "Advanced techniques for subscribers" \
+  "video/mp4" \
+  "sealed_abc123..." \
+  "preview_xyz789..." \
+  "0x31a69051a888504c7069776f11936d23575e453404d426de7155f2ab19f51591"
+
+# Multiple tier access (Basic OR Premium subscribers can access)
+bun start create-content 3 \
+  "Intermediate Tutorial" \
+  "For Basic and Premium subscribers" \
+  "video/mp4" \
+  "sealed_def456..." \
+  "preview_uvw012..." \
+  "0xBASIC_TIER_ID,0xPREMIUM_TIER_ID"
+
+# Text content without preview, tier-restricted
+bun start create-content 4 \
+  "Exclusive Article" \
+  "VIP-only written content" \
+  "text/markdown" \
+  "sealed_ghi789..." \
+  "" \
+  "0xVIP_TIER_ID"
 ```
 
-### Update Tier Price
+**Parameters:**
+- **nonce**: Unique number (1, 2, 3...) for content identification
+- **title**: Content title
+- **description**: Content description
+- **content-type**: MIME type (video/mp4, image/jpeg, text/markdown, etc.)
+- **sealed-patch-id**: Encrypted content patch ID from Walrus
+- **preview-patch-id**: (Optional) Preview/sample patch ID from Walrus
+- **tier-ids**: (Optional) Comma-separated tier IDs for access control
+
+**Access Control:**
+- **No tier-ids (or empty string)**: Content is **PUBLIC** - anyone can access
+- **One tier-id**: Content requires subscription to **that specific tier**
+- **Multiple tier-ids**: Content accessible to subscribers of **ANY listed tier**
+
+---
+
+### Walrus Integration (Testing)
+
+#### Create Post with Walrus Upload
+
+Test the complete workflow: upload to Walrus + register on-chain.
 
 ```bash
-npm run cli -- subscription update-tier-price \
-  --id <tier-object-id> \
-  --price 7.5
+bun start create-post <nonce>
 ```
 
-### Deactivate a Tier
+**Example:**
+```bash
+bun start create-post 1
+```
+
+**What it does:**
+1. Creates sample content
+2. Uploads to Walrus (gets sealed and preview patch IDs)
+3. Registers content on-chain
+
+---
+
+#### View Post with Access Verification
+
+Verify that a subscription grants access to content.
 
 ```bash
-npm run cli -- subscription deactivate-tier --id <tier-object-id>
+bun start view-post <content-id> <subscription-id>
 ```
 
-This prevents new subscriptions but keeps existing ones active.
+**Example:**
+```bash
+bun start view-post \
+  0x24f4546334da8a2252fb11afd5609ebee5b87815028a1b171fd9f31b3fb32839 \
+  0xe3606bab539282e8a7e2a19c16a79b4a333869095521756ed8b8ea84f2e72bfb
+```
 
-### Purchase a Subscription
+**What it does:**
+- Calls `seal_approve()` on-chain
+- Verifies subscription is valid and grants access
+- If successful, content can be decrypted
+
+---
+
+## Complete Workflow Example
+
+Here's a complete end-to-end example from creator setup to content access.
+
+### As a Creator:
+
+#### 1. Create Your Profile
 
 ```bash
-# First, get your coin IDs
-npm run cli -- get-coins
-
-# Then purchase using a coin with sufficient balance
-npm run cli -- subscription purchase \
-  --tier-id <tier-object-id> \
-  --coin-id <sui-coin-object-id>
+bun start create-profile \
+  "alice.sui" \
+  "Professional photographer sharing exclusive content" \
+  "https://cdn.example.com/alice-avatar.jpg"
 ```
 
-### List Your Subscriptions
+Save the creator address from your wallet (you'll need it later).
+
+#### 2. Create Subscription Tiers
 
 ```bash
-npm run cli -- subscription list
+# Basic tier
+bun start create-tier \
+  "Basic" \
+  "Monthly photo releases" \
+  2000000
+
+# Premium tier
+bun start create-tier \
+  "Premium" \
+  "Weekly content + tutorials" \
+  5000000
 ```
 
-### Get Subscription Details
+**Save the tier IDs** from the TierCreated events in the output.
+
+#### 3. Upload Content to Walrus
 
 ```bash
-npm run cli -- subscription get --id <subscription-object-id>
+# Upload your content file to Walrus (using Walrus SDK/CLI)
+# This is done separately - see Walrus documentation
+
+# You'll get back:
+# - sealed_patch_id (encrypted content)
+# - preview_patch_id (public sample)
 ```
 
-## 📝 Content Commands
-
-### Create Content
+#### 4. Register Content On-Chain
 
 ```bash
-npm run cli -- content create \
-  --title "Exclusive Tutorial" \
-  --description "Advanced techniques for digital art" \
-  --type "video/mp4" \
-  --blob-id "walrus-blob-id-here" \
-  --preview-blob-id "preview-blob-id" \
-  --tier-ids "tier1-id,tier2-id" \
-  --public
+# Create tier-restricted content (Premium tier only)
+bun start create-content 1 \
+  "Sunset Photography Collection" \
+  "Exclusive high-resolution sunset photos - Premium subscribers only" \
+  "image/jpeg" \
+  "sealed_abc123..." \
+  "preview_xyz789..." \
+  "0xPREMIUM_TIER_ID"
+
+# Or create public content (no tier restrictions)
+bun start create-content 2 \
+  "Free Sample" \
+  "Free preview for everyone" \
+  "image/jpeg" \
+  "sealed_sample..." \
+  "preview_sample..."
 ```
 
-Options:
-- `--title`: Content title (required)
-- `--description`: Content description (required)
-- `--type`: MIME type like `video/mp4`, `image/png`, etc. (required)
-- `--blob-id`: Walrus blob ID for main content (required)
-- `--preview-blob-id`: Walrus blob ID for preview (optional)
-- `--tier-ids`: Comma-separated tier IDs that grant access (optional)
-- `--public`: Make content publicly accessible (optional flag)
+### As a Subscriber:
 
-### Get Content Details
+#### 5. Purchase Subscription
+
+First, find a USDC coin:
 
 ```bash
-npm run cli -- content get --id <content-object-id>
+# List your objects to find USDC coins
+sui client objects
+
+# Look for USDC coin with sufficient balance
+# Copy the object ID
 ```
 
-### Verify Access to Content
+Then purchase:
 
 ```bash
-npm run cli -- content verify-access \
-  --content-id <content-object-id> \
-  --subscription-id <subscription-object-id>
+bun start purchase \
+  0xALICE_CREATOR_ADDRESS \
+  0xPREMIUM_TIER_ID \
+  0xYOUR_USDC_COIN_ID
 ```
 
-This calls the `seal_approve` function to verify if the subscription grants access.
+**Save the subscription object ID** from the output.
 
-### List Content
+#### 6. Access Content
 
 ```bash
-npm run cli -- content list
-# or filter by creator
-npm run cli -- content list --creator <creator-address>
+bun start view-post \
+  0xCONTENT_OBJECT_ID \
+  0xYOUR_SUBSCRIPTION_ID
 ```
 
-**Note**: Listing requires an indexer. The command provides guidance on using event subscriptions.
+If access is granted, you can decrypt and view the content!
 
-## 🔄 Complete Workflow Example
+---
 
-Here's a complete workflow from profile creation to content access:
+## Getting Object IDs
 
-### Step 1: Creator Setup
+After running commands, object IDs are displayed in the output. You can also query them:
+
+### Find Your Objects
 
 ```bash
-# Create creator profile
-npm run cli -- profile create \
-  --name "Bob Artist" \
-  --bio "Professional photographer" \
-  --avatar "https://example.com/bob.jpg"
+# List all objects owned by your wallet
+sui client objects
 
-# Save the profile object ID from output
+# Look for:
+# - ActiveSubscription objects
+# - USDC coin objects
 ```
 
-### Step 2: Create Subscription Tiers
+### View Transaction Details
 
 ```bash
-# Create basic tier
-npm run cli -- subscription create-tier \
-  --name "Basic" \
-  --description "Monthly photo releases" \
-  --price 2.0
-
-# Create premium tier
-npm run cli -- subscription create-tier \
-  --name "Premium" \
-  --description "Weekly content + behind the scenes" \
-  --price 5.0
-
-# Save tier object IDs
+# View transaction by digest
+sui client transaction <tx-digest>
 ```
 
-### Step 3: Upload Content to Walrus (separate process)
+### Query Shared Objects
 
 ```bash
-# This would be done separately using Walrus SDK or CLI
-# walrus upload photo.jpg
-# Save the blob ID
+# The registry objects are shared and don't show in "sui client objects"
+# Use the IDs from your deployment (stored in .env)
 ```
 
-### Step 4: Register Content
+---
 
-```bash
-npm run cli -- content create \
-  --title "Sunset Collection 2024" \
-  --description "Exclusive sunset photography" \
-  --type "image/jpeg" \
-  --blob-id "<walrus-blob-id>" \
-  --tier-ids "<premium-tier-id>"
-```
+## Troubleshooting
 
-### Step 5: Subscriber Purchases Access
+### "Missing required environment variables"
 
-```bash
-# Check available coins
-npm run cli -- get-coins
-
-# Purchase subscription
-npm run cli -- subscription purchase \
-  --tier-id <premium-tier-id> \
-  --coin-id <sui-coin-id>
-
-# Save subscription object ID
-```
-
-### Step 6: Verify Access
-
-```bash
-npm run cli -- content verify-access \
-  --content-id <content-object-id> \
-  --subscription-id <subscription-object-id>
-```
-
-If successful, the subscriber can decrypt and view the content!
-
-## 🛠️ Development
-
-### Build TypeScript
-
-```bash
-npm run build
-```
-
-### Run in Development Mode
-
-```bash
-npm run dev -- <command> <args>
-```
-
-Example:
-
-```bash
-npm run dev -- profile list
-```
-
-### Code Quality
-
-Run linting and formatting checks:
-
-```bash
-# Run all checks (typecheck + lint + format)
-npm run check
-
-# Run TypeScript type checking
-npm run typecheck
-
-# Run ESLint
-npm run lint
-
-# Auto-fix ESLint issues
-npm run lint:fix
-
-# Format code with Prettier
-npm run format
-
-# Check formatting without modifying files
-npm run format:check
-```
-
-## 📁 Project Structure
-
-```
-contracts/scripts/
-├── src/
-│   ├── index.ts              # Main CLI entry point
-│   ├── commands/
-│   │   ├── profile.ts        # Profile commands
-│   │   ├── subscription.ts   # Subscription commands
-│   │   └── content.ts        # Content commands
-│   └── utils/
-│       ├── config.ts         # Environment configuration
-│       ├── client.ts         # Sui client setup
-│       ├── keypair.ts        # Keypair loading
-│       └── helpers.ts        # Utility functions
-├── .env.example              # Example environment file
-├── package.json
-├── tsconfig.json
-└── README.md                 # This file
-```
-
-## 🔐 Security Notes
-
-1. **Never commit `.env` file** - It contains your private key
-2. **Use testnet for development** - Don't risk mainnet funds
-3. **Backup your private key** - Store it securely offline
-4. **Use separate wallets** - Different keys for testing vs production
-
-## 🐛 Troubleshooting
-
-### "PRIVATE_KEY not found"
-
-Make sure you've created `.env` file and set `PRIVATE_KEY`:
+**Solution:** Create and configure `.env` file
 
 ```bash
 cp .env.example .env
-# Edit .env with your private key
+nano .env
+# Fill in all required values
 ```
 
-### "PACKAGE_ID not set"
+### "Failed to load private key"
 
-Deploy the contracts first and add the package ID to `.env`:
+**Solution:** Export your private key correctly
 
 ```bash
-cd ../creator_platform
-sui client publish --gas-budget 100000000
-# Copy packageId to .env
+# Get your private key
+sui keytool export --key-identity <your-address>
+
+# Copy the ENTIRE output including 'suiprivkey1' prefix to .env
 ```
 
 ### "Insufficient gas"
 
-Fund your wallet with testnet SUI:
+**Solution:** Fund your wallet
 
 ```bash
 sui client faucet
 ```
 
-### "Transaction failed"
+### "Profile already exists"
 
-Check:
-1. Your wallet has enough SUI for gas
-2. Package ID is correct in `.env`
-3. Object IDs are valid and owned by you
-4. Network is correct (testnet/mainnet)
+**Cause:** Each address can only have one profile
 
-### Getting object IDs
+**Solution:** Use a different wallet address or update the existing profile (update command not yet implemented in CLI)
 
-Most commands return the created object IDs. If you lose them:
+### "Tier not found"
 
+**Causes:**
+- Tier ID is incorrect
+- Tier belongs to a different creator
+
+**Solution:** Verify the tier ID from the TierCreated event when you created it
+
+### "Insufficient funds" (for subscription purchase)
+
+**Causes:**
+- USDC coin doesn't have enough balance
+- Wrong coin object ID
+
+**Solution:**
 ```bash
-# List profiles
-npm run cli -- profile list
+# Check your USDC coins
+sui client objects | grep -i usdc
 
-# List subscriptions
-npm run cli -- subscription list
-
-# List coins
-npm run cli -- get-coins
+# Use a coin with balance >= tier price
 ```
 
-## 📚 Additional Resources
+### Finding Object IDs
 
+After transactions complete, look for:
+
+**In console output:**
+- "Created Objects" section shows new object IDs
+- "Events Emitted" section shows event data
+
+**Using Sui CLI:**
+```bash
+# View recent transaction
+sui client transaction <tx-digest>
+
+# List your objects
+sui client objects
+```
+
+---
+
+## Command Reference
+
+### Quick Reference
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `create-profile` | Create creator profile | `bun start create-profile "Alice" "Bio" "URL"` |
+| `create-tier` | Create subscription tier | `bun start create-tier "Premium" "Description" 5000000` |
+| `deactivate-tier` | Deactivate a tier | `bun start deactivate-tier 0xTIER_ID` |
+| `purchase` | Buy subscription | `bun start purchase 0xCREATOR 0xTIER 0xCOIN` |
+| `create-content` | Register content (public/restricted) | `bun start create-content 1 "Title" "Desc" "video/mp4" "SEALED" "PREVIEW" "TIER1,TIER2"` |
+| `create-post` | Test: Upload & register | `bun start create-post 1` |
+| `view-post` | Test: Verify access | `bun start view-post 0xCONTENT 0xSUB` |
+
+### Get Help
+
+```bash
+# View all commands
+bun start --help
+
+# View help for specific command
+bun start create-profile --help
+bun start create-tier --help
+bun start purchase --help
+```
+
+---
+
+## Project Structure
+
+```
+contracts/scripts/
+├── src/
+│   ├── index.ts      # CLI commands and argument parsing
+│   ├── builder.ts    # Transaction builders for contract calls
+│   ├── config.ts     # Environment configuration and validation
+│   └── walrus.ts     # Walrus integration utilities
+├── .env.example      # Example environment file with setup guide
+├── .env              # Your configuration (gitignored - DO NOT COMMIT)
+├── package.json      # Dependencies and npm scripts
+├── tsconfig.json     # TypeScript configuration
+└── README.md         # This file
+```
+
+---
+
+## Development
+
+### Run TypeScript Directly
+
+```bash
+bun run src/index.ts <command> <args>
+```
+
+### Build for Distribution
+
+```bash
+bun run build
+```
+
+### Type Checking
+
+```bash
+bun run typecheck
+```
+
+---
+
+## Security Reminders
+
+⚠️ **NEVER commit your `.env` file** - It contains your private key
+
+⚠️ **Use testnet for development** - Don't risk real funds
+
+⚠️ **Backup your private key** securely offline
+
+⚠️ **Use separate wallets** for testing and production
+
+---
+
+## Additional Resources
+
+- [Creator Platform Contracts Documentation](../creator_platform/README.md)
 - [Sui Documentation](https://docs.sui.io)
 - [Sui TypeScript SDK](https://sdk.mystenlabs.com/typescript)
-- [Walrus Documentation](https://docs.walrus.site)
-- [Creator Platform Contracts](../creator_platform/README.md)
+- [Walrus Storage Documentation](https://docs.walrus.site)
+- [Backend API Documentation](../../backend/src/routes/README.md)
 
-## 🤝 Contributing
+---
 
-This CLI is part of the Creator Platform project. For bugs or feature requests, please open an issue.
+## Support
 
-## 📄 License
+For issues or questions:
+1. Check the [Troubleshooting](#troubleshooting) section above
+2. Review the [contract documentation](../creator_platform/README.md)
+3. Consult [Sui documentation](https://docs.sui.io)
 
-Same as the main Creator Platform project.
+---
+
+**Built on Sui Blockchain**
