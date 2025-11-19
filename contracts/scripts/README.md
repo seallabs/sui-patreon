@@ -288,6 +288,113 @@ bun start create-content 4 \
 
 ---
 
+### Wallet Management
+
+#### Send Coins
+
+Send custom coins (not SUI) to a destination address.
+
+```bash
+# Auto-detect coin type
+bun start send-coin <coin-object-id> <amount> <recipient-address>
+
+# With explicit coin type
+bun start send-coin <coin-object-id> <amount> <recipient-address> "<coin-type>"
+```
+
+**Examples:**
+
+```bash
+# Send 5 USDC (6 decimals = 5,000,000)
+bun start send-coin \
+  0x7d16fb30c527690e949bf939bf2b65180347007bf3a7b8bafb7027fbf6180805 \
+  5000000 \
+  0xb7758e1461586bf8cc294a65aa10163b4623293b917464dc41eaea9bf25163ae
+
+# Send with explicit coin type
+bun start send-coin \
+  0xCOIN_ID \
+  1000000 \
+  0xRECIPIENT \
+  "0x5938fdca99c807e4c1786ff84a32cf1bc3f1e393cff1ba79021464722e44af8c::usdc::USDC"
+```
+
+**Notes:**
+- Amount is in the coin's smallest unit (check decimals)
+- Common decimals: USDC = 6, SUI = 9, WAL = 9
+- Coin type is auto-detected if not provided
+- You need SUI for gas fees
+
+---
+
+#### Wallet Summary
+
+Display all coin balances in your wallet.
+
+```bash
+# Your wallet
+bun start wallet-summary
+
+# Another wallet
+bun start wallet-summary 0xOTHER_ADDRESS
+```
+
+**Output:**
+```
+💼 Wallet Summary
+   Address: 0xb7758...
+
+   Coin Balances:
+   - SUI: 41.150058130
+     Type: 0x2::sui::SUI
+   - USDC: 99946.000000
+     Type: 0x5938f...::usdc::USDC
+```
+
+---
+
+#### Get Balance
+
+Check balance for a specific coin type.
+
+```bash
+bun start get-balance "<coin-type>" [address]
+```
+
+**Examples:**
+
+```bash
+# Check your SUI balance
+bun start get-balance "0x2::sui::SUI"
+
+# Check another wallet's USDC balance
+bun start get-balance \
+  "0x5938fdca99c807e4c1786ff84a32cf1bc3f1e393cff1ba79021464722e44af8c::usdc::USDC" \
+  0xOTHER_ADDRESS
+```
+
+---
+
+#### Send All Coins
+
+Send all coins of a specific type to a destination (automatically merges multiple coins).
+
+```bash
+bun start send-all-coins "<coin-type>" <recipient-address>
+```
+
+**Example:**
+
+```bash
+bun start send-all-coins \
+  "0x5938fdca99c807e4c1786ff84a32cf1bc3f1e393cff1ba79021464722e44af8c::usdc::USDC" \
+  0xRECIPIENT_ADDRESS
+```
+
+**Note:** This merges all coins of the specified type and sends them in one transaction.
+
+---
+
 ### Walrus Integration (Testing)
 
 #### Create Post with Walrus Upload
@@ -551,13 +658,21 @@ sui client objects
 
 | Command | Description | Example |
 |---------|-------------|---------|
+| **Profile & Tiers** |
 | `create-profile` | Create creator profile | `bun start create-profile "Alice" "Bio" "URL"` |
 | `create-tier` | Create subscription tier | `bun start create-tier "Premium" "Description" 5000000` |
 | `deactivate-tier` | Deactivate a tier | `bun start deactivate-tier 0xTIER_ID` |
+| **Subscriptions** |
 | `purchase` | Buy subscription | `bun start purchase 0xCREATOR 0xTIER 0xCOIN` |
+| **Content** |
 | `create-content` | Register content (public/restricted) | `bun start create-content 1 "Title" "Desc" "video/mp4" "SEALED" "PREVIEW" "TIER1,TIER2"` |
 | `create-post` | Test: Upload & register | `bun start create-post 1` |
 | `view-post` | Test: Verify access | `bun start view-post 0xCONTENT 0xSUB` |
+| **Wallet** |
+| `send-coin` | Send custom coins | `bun start send-coin 0xCOIN 5000000 0xRECIPIENT` |
+| `wallet-summary` | Show all coin balances | `bun start wallet-summary` |
+| `get-balance` | Check specific coin balance | `bun start get-balance "0x2::sui::SUI"` |
+| `send-all-coins` | Send all coins of type | `bun start send-all-coins "COIN_TYPE" 0xRECIPIENT` |
 
 ### Get Help
 
@@ -627,6 +742,7 @@ bun run typecheck
 
 ## Additional Resources
 
+- **[Wallet Helper Guide](./WALLET_GUIDE.md)** - Comprehensive guide for wallet operations
 - [Creator Platform Contracts Documentation](../creator_platform/README.md)
 - [Sui Documentation](https://docs.sui.io)
 - [Sui TypeScript SDK](https://sdk.mystenlabs.com/typescript)

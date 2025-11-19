@@ -6,11 +6,15 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { ContentCard } from "@/components/content/content-card";
-import { CheckCircle2, Users, Calendar, AlertCircle } from "lucide-react";
+import { CheckCircle2, Users, Calendar, AlertCircle, Loader2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { useVisitTracking } from "@/hooks/useVisitTracking";
 import { fetchCreatorProfile, CreatorProfileData } from "@/services/creator";
+import { fetchSubscriptionStatus, SubscriptionStatus } from "@/services/subscription";
 import { use } from "react";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import { usePurchaseSubscription } from "@/lib/sui/subscription";
+import { toast } from "sonner";
 
 interface PageProps {
   params: Promise<{ address: string }>;
@@ -19,12 +23,16 @@ interface PageProps {
 export default function CreatorProfilePage({ params }: PageProps) {
   const { address } = use(params);
   const { trackCreatorVisit } = useVisitTracking();
+  const currentAccount = useCurrentAccount();
+  const { purchaseSubscription, isLoading: isSubscribing } = usePurchaseSubscription();
 
   const [profileData, setProfileData] = useState<CreatorProfileData | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
 
   // Fetch profile data
   const loadProfile = useCallback(async () => {
@@ -43,10 +51,42 @@ export default function CreatorProfilePage({ params }: PageProps) {
     }
   }, [address]);
 
+  // Fetch subscription status
+  const loadSubscriptionStatus = useCallback(async () => {
+    if (!currentAccount?.address || !address) {
+      setSubscriptionStatus(null);
+      return;
+    }
+
+    try {
+      setIsLoadingSubscription(true);
+      const status = await fetchSubscriptionStatus(
+        currentAccount.address,
+        address
+      );
+      setSubscriptionStatus(status);
+    } catch (err) {
+      console.error("Error loading subscription status:", err);
+      // Fail gracefully - assume not subscribed
+      setSubscriptionStatus({ isSubscribed: false });
+    } finally {
+      setIsLoadingSubscription(false);
+    }
+  }, [currentAccount?.address, address]);
+
   // Load profile on mount
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Load subscription status when wallet is connected
+  useEffect(() => {
+    if (currentAccount?.address && address) {
+      loadSubscriptionStatus();
+    } else {
+      setSubscriptionStatus(null);
+    }
+  }, [currentAccount?.address, address, loadSubscriptionStatus]);
 
   // Track visit when page loads
   useEffect(() => {
@@ -54,6 +94,63 @@ export default function CreatorProfilePage({ params }: PageProps) {
       trackCreatorVisit(address);
     }
   }, [address, trackCreatorVisit]);
+
+  // Handle subscription purchase
+  const handleSubscribe = useCallback(
+    async (tierId: string, tierName: string, price: number) => {
+      if (!currentAccount?.address) {
+        toast.error("Wallet not connected", {
+          description: "Please connect your wallet to subscribe",
+        });
+        return;
+      }
+
+      console.log("Subscribing with Sui tierId:", tierId);
+
+      try {
+        await purchaseSubscription(
+          {
+            creatorAddress: address,
+            tierId,
+            priceUsdc: price,
+            tierName,
+          },
+          currentAccount.address
+        );
+
+        // Refresh subscription status after successful purchase
+        await loadSubscriptionStatus();
+        toast.success("Subscription successful!", {
+          description: `You are now subscribed to ${tierName}`,
+        });
+      } catch (err) {
+        // Error already handled by usePurchaseSubscription
+        console.error("Subscription failed:", err);
+      }
+    },
+    [address, currentAccount, purchaseSubscription, loadSubscriptionStatus]
+  );
+
+  // Helper function to get tier button state
+  const getTierButtonState = (tierId: string) => {
+    if (!currentAccount) {
+      return { text: "Connect Wallet", variant: "default" as const, disabled: false };
+    }
+
+    if (isLoadingSubscription) {
+      return { text: "Loading...", variant: "default" as const, disabled: true };
+    }
+
+    if (!subscriptionStatus?.isSubscribed) {
+      return { text: "Subscribe", variant: "default" as const, disabled: false };
+    }
+
+    if (subscriptionStatus.subscription?.tierId === tierId) {
+      return { text: "Subscribed", variant: "secondary" as const, disabled: true };
+    }
+
+    return { text: "Switch to This Tier", variant: "outline" as const, disabled: false };
+  };
 
   // Loading state
   if (isLoading) {
@@ -210,11 +307,6 @@ export default function CreatorProfilePage({ params }: PageProps) {
                     </span>
                   </div>
                 </div>
-
-                {/* Subscribe Button */}
-                <div className="pt-4">
-                  <Button size="lg">Subscribe</Button>
-                </div>
               </div>
             </div>
           </div>
@@ -223,39 +315,87 @@ export default function CreatorProfilePage({ params }: PageProps) {
           <div className="mx-auto max-w-5xl px-6 py-8">
             {/* Subscription Tiers */}
             {tiers.length > 0 && (
-              <section className="mb-12">
+              <section className="mb-12" data-section="tiers">
                 <h2 className="mb-6 text-2xl font-semibold">
                   Membership tiers
                 </h2>
                 <div className="grid gap-6 md:grid-cols-3">
-                  {tiers.map((tier) => (
-                    <div
-                      key={tier.id}
-                      className="flex flex-col rounded-lg border border-border bg-card p-6"
-                    >
-                      <h3 className="mb-2 text-xl font-semibold">
-                        {tier.name}
-                      </h3>
-                      <p className="mb-4 flex-1 text-sm text-muted-foreground">
-                        {tier.description}
-                      </p>
-                      <div className="mb-4 text-3xl font-bold">
-                        {tier.price} SUI/mo
+                  {tiers.map((tier) => {
+                    const buttonState = getTierButtonState(tier.tierId);
+                    const isCurrentTier =
+                      subscriptionStatus?.subscription?.tierId === tier.tierId;
+
+                    return (
+                      <div
+                        key={tier.id}
+                        className={`flex flex-col rounded-lg border bg-card p-6 ${
+                          isCurrentTier
+                            ? "border-primary shadow-md"
+                            : "border-border"
+                        }`}
+                      >
+                        <div className="mb-2 flex items-center gap-2">
+                          <h3 className="text-xl font-semibold">
+                            {tier.name}
+                          </h3>
+                          {isCurrentTier && (
+                            <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              Current Plan
+                            </span>
+                          )}
+                        </div>
+                        <p className="mb-4 flex-1 text-sm text-muted-foreground">
+                          {tier.description}
+                        </p>
+                        <div className="mb-4 text-3xl font-bold">
+                          {tier.price} USDC/mo
+                        </div>
+                        <ul className="mb-6 space-y-2 text-sm">
+                          {tier.benefits.map((benefit, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                              <span>{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <Button
+                          className="w-full"
+                          variant={buttonState.variant}
+                          onClick={() =>
+                            handleSubscribe(tier.tierId, tier.name, tier.price)
+                          }
+                          disabled={
+                            isSubscribing ||
+                            buttonState.disabled ||
+                            isLoadingSubscription
+                          }
+                        >
+                          {isSubscribing ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : isCurrentTier ? (
+                            <>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />
+                              {buttonState.text}
+                            </>
+                          ) : (
+                            buttonState.text
+                          )}
+                        </Button>
+                        {isCurrentTier && subscriptionStatus?.subscription && (
+                          <p className="mt-2 text-center text-xs text-muted-foreground">
+                            Expires:{" "}
+                            {subscriptionStatus.subscription.expiresAt.toLocaleDateString()}
+                          </p>
+                        )}
+                        <p className="mt-2 text-center text-xs text-muted-foreground">
+                          {formatNumber(tier.subscriberCount)} subscribers
+                        </p>
                       </div>
-                      <ul className="mb-6 space-y-2 text-sm">
-                        {tier.benefits.map((benefit, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                            <span>{benefit}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <Button className="w-full">Subscribe</Button>
-                      <p className="mt-2 text-center text-xs text-muted-foreground">
-                        {formatNumber(tier.subscriberCount)} subscribers
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}

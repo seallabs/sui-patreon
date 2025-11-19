@@ -115,6 +115,7 @@ function mapToCreatorProfileData(
   // Map tiers
   const mappedTiers: SubscriptionTier[] = tiers.map((tier) => ({
     id: tier.id,
+    tierId: tier.tierId,
     creatorAddress: creator.address,
     name: tier.name,
     description: tier.description,

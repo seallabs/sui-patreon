@@ -17,7 +17,8 @@ export interface CreatorProfile {
 }
 
 export interface SubscriptionTier {
-  id: string;
+  id: string; // Database UUID
+  tierId: string; // Sui blockchain object ID
   creatorAddress: string;
   name: string;
   description: string;

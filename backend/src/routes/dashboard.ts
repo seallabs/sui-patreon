@@ -8,6 +8,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
+import { formatCurrency } from '../config/currency';
 
 const router = Router();
 
@@ -205,20 +206,20 @@ async function getOverviewStats(tierIds: string[]): Promise<OverviewStats> {
   });
 
   // Calculate total revenue (assuming each subscription = 1 month of payment)
-  let totalRevenueMist = BigInt(0);
+  let totalRevenueSmallestUnit = BigInt(0);
   for (const sub of subscriptions) {
     const tierPrice = tierMap.get(sub.tierId);
     if (tierPrice) {
-      totalRevenueMist += tierPrice;
+      totalRevenueSmallestUnit += tierPrice;
     }
   }
 
-  // Convert MIST to SUI (1 SUI = 1,000,000,000 MIST)
-  const totalRevenueSui = (Number(totalRevenueMist) / 1_000_000_000).toFixed(2);
+  // Convert from smallest unit to standard unit (e.g., USDC base units to USDC dollars)
+  const totalRevenueFormatted = formatCurrency(totalRevenueSmallestUnit, 2);
 
   return {
     totalMembers,
-    totalRevenue: totalRevenueSui,
+    totalRevenue: totalRevenueFormatted,
   };
 }
 

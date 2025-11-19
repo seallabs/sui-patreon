@@ -8,6 +8,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
+import { toStandardUnit } from '../config/currency';
 
 const router = Router();
 
@@ -176,7 +177,7 @@ router.get('/:creatorAddress', async (req: Request, res: Response) => {
         ? 'Paid'
         : 'Public',
       price: item.contentTiers.length > 0 && item.contentTiers[0].tier
-        ? Number(item.contentTiers[0].tier.price) / 1_000_000_000 // Convert MIST to SUI
+        ? toStandardUnit(item.contentTiers[0].tier.price)
         : undefined,
       postType: mapContentTypeToPostType(item.contentType),
       thumbnailUrl: item.previewPatchId

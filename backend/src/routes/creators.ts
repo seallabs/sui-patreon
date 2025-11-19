@@ -8,6 +8,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
 import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
+import { toStandardUnit } from '../config/currency';
 
 const router = Router();
 
@@ -98,11 +99,11 @@ router.get('/', async (req: Request, res: Response) => {
     // Build where clause
     const where = query
       ? {
-          name: {
-            contains: sanitizeSearchQuery(query as string),
-            mode: 'insensitive' as const,
-          },
-        }
+        name: {
+          contains: sanitizeSearchQuery(query as string),
+          mode: 'insensitive' as const,
+        },
+      }
       : {};
 
     const creators = await prisma.creator.findMany({
@@ -316,15 +317,15 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
         // Parse benefits from description or use defaults
         const benefits = parseBenefits(tier.description);
 
-        // Convert price from MIST to SUI
-        const priceInSui = Number(tier.price) / 1_000_000_000;
+        // Convert price from smallest unit to standard unit
+        const priceInStandardUnit = toStandardUnit(tier.price);
 
         return {
           id: tier.id,
           tierId: tier.tierId,
           name: tier.name,
           description: tier.description,
-          price: priceInSui,
+          price: priceInStandardUnit,
           benefits,
           subscriberCount,
           isActive: tier.isActive,
@@ -348,7 +349,9 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       id: post.id,
       title: post.title,
       description: post.description,
-      thumbnailUrl: post.previewPatchId ?? undefined,
+      thumbnailUrl: post.previewPatchId
+        ? `https://aggregator.walrus-testnet.walrus.space/v1/${post.previewPatchId}`
+        : undefined,
       publishedAt: post.publishedAt,
       viewCount: post.viewCount,
       likeCount: post.likeCount,

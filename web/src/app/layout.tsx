@@ -5,6 +5,7 @@ import { MessagingClientProvider } from '@/providers/MessagingClientProvider';
 import '@mysten/dapp-kit/dist/index.css';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
           <SessionKeyProvider>
             <MessagingClientProvider>
               <UserProvider>{children}</UserProvider>
+              <Toaster position="bottom-right" richColors />
             </MessagingClientProvider>
           </SessionKeyProvider>
         </AppWrapper>

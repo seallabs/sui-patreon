@@ -1,6 +1,14 @@
 import { Command } from 'commander';
-import { createContent, createProfile, createTier, deactivateTier, purchase } from './builder';
+import { createContent, createProfile, createTier, deactivateTier, purchase, sendCoin } from './builder';
 import { createPost, viewPost } from './walrus';
+import {
+  displayWalletSummary,
+  getAllCoins,
+  getCoinsByType,
+  getTotalBalance,
+  sendAllCoins,
+  formatBalance,
+} from './wallet';
 
 const program = new Command();
 
@@ -72,6 +80,109 @@ program
     '\nExample:\n' +
       '  $ bun start purchase 0xCREATOR_ADDRESS 0xTIER_ID 0xUSDC_COIN_ID\n' +
       '\nTip: Use "sui client objects" to find your USDC coin object IDs\n'
+  );
+
+// =============================================================================
+// Wallet Commands
+// =============================================================================
+
+program
+  .command('send-coin')
+  .description('Send custom coins (non-SUI) to a destination address')
+  .argument('<coinObjectId>', 'Coin object ID to send')
+  .argument('<amount>', 'Amount to send (in smallest unit, e.g., 5000000 = 5 USDC)', parseFloat)
+  .argument('<recipientAddress>', 'Destination wallet address (0x...)')
+  .argument('[coinType]', 'Optional: Full coin type (auto-detected if not provided)')
+  .action(sendCoin)
+  .addHelpText(
+    'after',
+    '\nExamples:\n' +
+      '  # Send 5 USDC (6 decimals) - auto-detect coin type\n' +
+      '  $ bun start send-coin 0xCOIN_OBJECT_ID 5000000 0xRECIPIENT_ADDRESS\n\n' +
+      '  # Send with explicit coin type\n' +
+      '  $ bun start send-coin 0xCOIN_ID 1000000 0xRECIPIENT "0x5d4b...::coin::COIN"\n\n' +
+      'Tips:\n' +
+      '  - Use "sui client objects" to find your coin object IDs\n' +
+      '  - Amount is in smallest unit (e.g., USDC has 6 decimals)\n' +
+      '  - Coin type is auto-detected from the coin object if not provided\n' +
+      '  - Ensure you have enough SUI for gas fees\n'
+  );
+
+program
+  .command('wallet-summary')
+  .description('Display wallet summary with all coin balances')
+  .argument('[address]', 'Optional: Wallet address (defaults to configured wallet)')
+  .action(async (address?: string) => {
+    await displayWalletSummary(address);
+  })
+  .addHelpText(
+    'after',
+    '\nExamples:\n' +
+      '  # Show your wallet\n' +
+      '  $ bun start wallet-summary\n\n' +
+      '  # Show another wallet\n' +
+      '  $ bun start wallet-summary 0xOTHER_ADDRESS\n'
+  );
+
+program
+  .command('get-balance')
+  .description('Get balance of a specific coin type')
+  .argument('<coinType>', 'Full coin type (e.g., "0x2::sui::SUI")')
+  .argument('[address]', 'Optional: Wallet address (defaults to configured wallet)')
+  .action(async (coinType: string, address?: string) => {
+    const { keypair: kp } = await import('./config');
+    const walletAddress = address || kp.toSuiAddress();
+    const balance = await getTotalBalance(walletAddress, coinType);
+
+    console.log(`\n💰 Balance for ${coinType}`);
+    console.log(`   Address: ${walletAddress}`);
+    console.log(`   Raw Balance: ${balance}`);
+
+    // Try to format based on known decimals
+    if (coinType.includes('::sui::SUI')) {
+      console.log(`   Formatted: ${formatBalance(balance, 9)} SUI`);
+    } else if (coinType.toLowerCase().includes('usdc')) {
+      console.log(`   Formatted: ${formatBalance(balance, 6)} USDC`);
+    }
+    console.log('');
+  })
+  .addHelpText(
+    'after',
+    '\nExamples:\n' +
+      '  $ bun start get-balance "0x2::sui::SUI"\n' +
+      '  $ bun start get-balance "0x5d4b...::coin::COIN" 0xADDRESS\n'
+  );
+
+program
+  .command('send-all-coins')
+  .description('Send all coins of a specific type to a destination')
+  .argument('<coinType>', 'Full coin type to send')
+  .argument('<recipientAddress>', 'Destination wallet address (0x...)')
+  .action(async (coinType: string, recipientAddress: string) => {
+    console.log('\n💸 Sending all coins...');
+    console.log(`   Coin Type: ${coinType}`);
+    console.log(`   To: ${recipientAddress}`);
+
+    try {
+      const result = await sendAllCoins(coinType, recipientAddress);
+
+      console.log('\n✅ All coins sent successfully!');
+      console.log(`   Transaction: ${result.digest}`);
+      console.log(`   From: ${result.from}`);
+      console.log(`   To: ${result.to}`);
+      console.log(`   Total Amount: ${result.amount}`);
+      console.log(`   Coins Merged: ${result.coinCount}`);
+    } catch (error: any) {
+      console.error('\n❌ Failed to send coins:');
+      console.error(`   ${error.message || error}`);
+      throw error;
+    }
+  })
+  .addHelpText(
+    'after',
+    '\nExample:\n' +
+      '  $ bun start send-all-coins "0x5d4b...::coin::COIN" 0xRECIPIENT_ADDRESS\n\n' +
+      'Note: This will merge all coins of the specified type and send them\n'
   );
 
 // =============================================================================

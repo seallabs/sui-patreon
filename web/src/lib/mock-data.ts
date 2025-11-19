@@ -175,6 +175,7 @@ export const mockCreators: CreatorProfile[] = [
 export const mockTiers: SubscriptionTier[] = [
   {
     id: "tier1",
+    tierId: "0x1111111111111111111111111111111111111111111111111111111111111111",
     creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
     name: "Bronze Supporter",
     description: "Access to exclusive content and monthly updates",
@@ -185,6 +186,7 @@ export const mockTiers: SubscriptionTier[] = [
   },
   {
     id: "tier2",
+    tierId: "0x2222222222222222222222222222222222222222222222222222222222222222",
     creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
     name: "Silver Patron",
     description: "Everything in Bronze plus exclusive behind-the-scenes content",
@@ -200,6 +202,7 @@ export const mockTiers: SubscriptionTier[] = [
   },
   {
     id: "tier3",
+    tierId: "0x3333333333333333333333333333333333333333333333333333333333333333",
     creatorAddress: "0x1234567890abcdef1234567890abcdef12345678",
     name: "Gold Champion",
     description: "Premium tier with personal perks and direct interaction",

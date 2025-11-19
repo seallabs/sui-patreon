@@ -218,6 +218,93 @@ export async function purchase(creator: string, tierId: string, payment: string)
 }
 
 /**
+ * Send custom coins (non-SUI) to a destination address
+ *
+ * @param coinObjectId - The coin object ID to send
+ * @param amount - Amount to send (in the coin's smallest unit)
+ * @param recipientAddress - Destination wallet address
+ * @param coinType - Full coin type string (e.g., "0x2::sui::SUI" for SUI, or custom coin type)
+ *
+ * @example
+ * // Send 5 USDC (6 decimals: 5 * 1_000_000)
+ * await sendCoin(
+ *   "0xCOIN_OBJECT_ID",
+ *   5_000_000,
+ *   "0xRECIPIENT_ADDRESS",
+ *   "0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN"
+ * );
+ */
+export async function sendCoin(
+  coinObjectId: string,
+  amount: number | bigint,
+  recipientAddress: string,
+  coinType?: string
+) {
+  console.log('\n💸 Sending Coin...');
+  console.log(`   From: ${keypair.toSuiAddress()}`);
+  console.log(`   To: ${recipientAddress}`);
+  console.log(`   Amount: ${amount}`);
+  console.log(`   Coin Object: ${coinObjectId}`);
+  if (coinType) {
+    console.log(`   Coin Type: ${coinType}`);
+  }
+
+  try {
+    const tx = new Transaction();
+
+    // If coin type is not provided, fetch it from the coin object
+    if (!coinType) {
+      console.log('\n🔍 Fetching coin type...');
+      const coinObject = await suiClient.getObject({
+        id: coinObjectId,
+        options: { showType: true },
+      });
+
+      if (!coinObject.data?.type) {
+        throw new Error('Could not determine coin type from object');
+      }
+
+      // Extract coin type from object type
+      // Format: "0x2::coin::Coin<COIN_TYPE>"
+      const match = coinObject.data.type.match(/<(.+)>/);
+      if (!match) {
+        throw new Error('Invalid coin object type format');
+      }
+      coinType = match[1];
+      console.log(`   Detected Coin Type: ${coinType}`);
+    }
+
+    // Split the coin to get the exact amount
+    const [splitCoin] = tx.splitCoins(tx.object(coinObjectId), [tx.pure.u64(amount)]);
+
+    // Transfer the split coin to recipient
+    tx.transferObjects([splitCoin], tx.pure.address(recipientAddress));
+
+    const result = await suiClient.signAndExecuteTransaction({
+      transaction: tx,
+      signer: keypair,
+      options: callOptions(),
+    });
+
+    console.log('\n✅ Coin sent successfully!');
+    console.log(`   Transaction: ${result.digest}`);
+    console.log(`   From: ${keypair.toSuiAddress()}`);
+    console.log(`   To: ${recipientAddress}`);
+    console.log(`   Amount: ${amount}`);
+    displayEvents(result);
+  } catch (error: any) {
+    console.error('\n❌ Failed to send coin:');
+    console.error(`   ${error.message || error}`);
+    console.error('\n💡 Troubleshooting:');
+    console.error('   - Ensure coin object ID is correct');
+    console.error('   - Verify sufficient coin balance');
+    console.error('   - Check recipient address format (must start with 0x)');
+    console.error('   - Ensure you have enough SUI for gas fees');
+    throw error;
+  }
+}
+
+/**
  * Create content and register on-chain
  *
  * @param nonce - Unique nonce for this content
