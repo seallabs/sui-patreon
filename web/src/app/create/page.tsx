@@ -131,8 +131,8 @@ export default function CreatePage() {
         formData.title,
         formData.content,
         formData.mediaType!,
-        files[0].blobId,
-        files[1].blobId,
+        files[0].id,
+        files[1].id,
         formData.tierIds
       );
       await signAndExecuteTransaction({ transaction: createTx });
