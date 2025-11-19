@@ -6,21 +6,36 @@ import {
   WalletProvider,
 } from '@mysten/dapp-kit';
 import { isEnokiNetwork, registerEnokiWallets } from '@mysten/enoki';
-import { getFullnodeUrl } from '@mysten/sui/client';
+import { SuiClient } from '@mysten/sui/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 const queryClient = new QueryClient();
 const { networkConfig } = createNetworkConfig({
-  localnet: { url: getFullnodeUrl('localnet') },
-  devnet: { url: getFullnodeUrl('devnet') },
-  testnet: { url: getFullnodeUrl('testnet') },
-  mainnet: { url: getFullnodeUrl('mainnet') },
+  localnet: { url: 'http://127.0.0.1:9000' },
+  devnet: { url: 'https://fullnode.devnet.sui.io:443' },
+  testnet: { url: 'https://fullnode.testnet.sui.io:443' },
+  mainnet: { url: 'https://fullnode.mainnet.sui.io:443' },
 });
+
+// Create SuiClient with MVR (Module Version Resolution) for messaging SDK
+const createClient = () => {
+  return new SuiClient({
+    url: "https://fullnode.testnet.sui.io:443",
+    mvr: {
+      overrides: {
+        packages: {
+          '@local-pkg/sui-stack-messaging': "0x984960ebddd75c15c6d38355ac462621db0ffc7d6647214c802cd3b685e1af3d",
+        },
+      },
+    },
+  });
+};
+
 function AppWrapper({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <SuiClientProvider network='testnet' networks={networkConfig}>
+      <SuiClientProvider createClient={createClient} networks={networkConfig} defaultNetwork="testnet">
         <RegisterEnokiWallets />
         <WalletProvider autoConnect>{children}</WalletProvider>
       </SuiClientProvider>

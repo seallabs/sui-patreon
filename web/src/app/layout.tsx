@@ -1,5 +1,7 @@
 import AppWrapper from '@/components/layout/wrapper';
 import { UserProvider } from '@/contexts/user-context';
+import { SessionKeyProvider } from '@/providers/SessionKeyProvider';
+import { MessagingClientProvider } from '@/providers/MessagingClientProvider';
 import '@mysten/dapp-kit/dist/index.css';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -31,7 +33,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AppWrapper>
-          <UserProvider>{children}</UserProvider>
+          <SessionKeyProvider>
+            <MessagingClientProvider>
+              <UserProvider>{children}</UserProvider>
+            </MessagingClientProvider>
+          </SessionKeyProvider>
         </AppWrapper>
       </body>
     </html>
