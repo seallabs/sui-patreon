@@ -212,7 +212,7 @@ router.post('/read-all', async (req: Request, res: Response) => {
  * Query parameters:
  * - address (required): User's Sui wallet address
  *
- * @returns Unread notification count
+ * @returns Unread notification count (returns 0 if user is not a creator)
  */
 router.get('/unread-count', async (req: Request, res: Response) => {
   try {
@@ -231,9 +231,10 @@ router.get('/unread-count', async (req: Request, res: Response) => {
       select: { id: true },
     });
 
+    // If user is not a creator, return 0 instead of 404
     if (!creator) {
-      return res.status(404).json({
-        error: 'Creator not found for this address',
+      return res.json({
+        count: 0,
       });
     }
 

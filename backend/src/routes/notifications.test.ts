@@ -272,6 +272,15 @@ describe('Notification System', () => {
     expect(response.body.error).toContain('Creator not found');
   });
 
+  test('GET /api/notifications/unread-count should return 0 for non-existent creator', async () => {
+    const response = await request(app)
+      .get('/api/notifications/unread-count')
+      .query({ address: '0xnonexistent' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.count).toBe(0);
+  });
+
   test('POST /api/notifications/:id/read should mark notification as read', async () => {
     // Get a notification
     const notifications = await prisma.notification.findMany({

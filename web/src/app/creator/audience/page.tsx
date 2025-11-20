@@ -29,11 +29,10 @@ import {
   Users,
 } from "lucide-react";
 import { SubscriberInfo } from "@/types";
-
-// Mock creator address - replace with actual user context
-const MOCK_CREATOR_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
+import { useUser } from "@/contexts/user-context";
 
 export default function AudiencePage() {
+  const { user } = useUser();
   const [subscribers, setSubscribers] = useState<SubscriberInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,16 +44,24 @@ export default function AudiencePage() {
   const subscribersPerPage = 20;
 
   useEffect(() => {
-    fetchSubscribers();
-  }, []);
+    if (user?.address) {
+      fetchSubscribers();
+    }
+  }, [user?.address]);
 
   const fetchSubscribers = async () => {
+    if (!user?.address) {
+      setError("Please log in to view your audience");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(
-        `http://localhost:3001/api/creators/${MOCK_CREATOR_ADDRESS}/subscribers`
+        `http://localhost:3001/api/creators/${user.address}/subscribers`
       );
 
       if (!response.ok) {
