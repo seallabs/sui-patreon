@@ -8,6 +8,7 @@ export interface HomeCreatorResponse {
   name: string;
   bio: string;
   avatarUrl: string | null;
+  backgroundUrl: string | null;
   category: string;
   followerCount: number;
   isVerified: boolean;
@@ -95,6 +96,7 @@ function mapToCreatorProfile(creator: HomeCreatorResponse): CreatorProfile {
     displayName: creator.name,
     bio: creator.bio,
     avatarUrl,
+    backgroundUrl: creator.backgroundUrl,
     category: creator.category,
     followerCount: creator.followerCount,
     isVerified: creator.isVerified,

@@ -256,9 +256,7 @@ export default function ContentDetailPage({ params }: PageProps) {
 
   // Handle creator navigation
   const handleCreatorClick = () => {
-    if (contentData?.isPublic) {
-      router.push(`/creator/${contentData.creator.address}`);
-    }
+    router.push(`/creator/${contentData.creator.address}`);
   };
 
   // Handle extend blob
@@ -403,8 +401,7 @@ export default function ContentDetailPage({ params }: PageProps) {
             {/* Creator Info Bar */}
             <div className='mb-6 flex items-center justify-between'>
               <div
-                className={`flex items-center gap-4 ${isPublic ? 'cursor-pointer' : 'cursor-default'
-                  }`}
+                className='flex cursor-pointer items-center gap-4'
                 onClick={handleCreatorClick}
               >
                 {/* Avatar */}
