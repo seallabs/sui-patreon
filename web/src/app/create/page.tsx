@@ -19,6 +19,50 @@ import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+/**
+ * Retry a transaction with exponential backoff
+ * @param fn - The async function to retry
+ * @param maxRetries - Maximum number of retry attempts (default: 5)
+ * @param baseDelay - Base delay in milliseconds (default: 1000ms)
+ * @returns The result of the successful function call
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 5,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries - 1) {
+        break;
+      }
+
+      // Calculate exponential backoff delay: baseDelay * 2^attempt
+      // Attempt 0: 1s, Attempt 1: 2s, Attempt 2: 4s, Attempt 3: 8s, Attempt 4: 16s
+      const delay = baseDelay * Math.pow(2, attempt);
+      
+      console.warn(
+        `Transaction attempt ${attempt + 1} failed, retrying in ${delay}ms...`,
+        error
+      );
+
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error(
+    `Transaction failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`
+  );
+}
+
 const defaultFormData: CreatePostFormData = {
   title: '',
   content: '',
@@ -136,7 +180,15 @@ export default function CreatePage() {
         formData.tierIds,
         files[0].blobObject.id.id
       );
-      await signAndExecuteTransaction({ transaction: createTx });
+      
+      // Retry the final transaction up to 5 times with exponential backoff
+      // This handles RPC delays and temporary network issues
+      await retryWithBackoff(
+        async () => await signAndExecuteTransaction({ transaction: createTx }),
+        5,  // maxRetries
+        1000 // baseDelay in ms (1s, 2s, 4s, 8s, 16s)
+      );
+      
       // Success - redirect to creator dashboard or post page
       setTimeout(() => {
         router.push('/creator/dashboard');
