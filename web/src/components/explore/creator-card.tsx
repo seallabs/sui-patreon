@@ -21,12 +21,12 @@ export function ExploreCreatorCard({ creator }: ExploreCreatorCardProps) {
       href={`/creator/${creator.address}`}
       className="group block overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg"
     >
-      {/* Cover Image - Large banner at top */}
+      {/* Background Image - Large banner at top */}
       <div className="relative aspect-[16/7] w-full overflow-hidden bg-muted">
-        {creator.coverImageUrl ? (
+        {creator.backgroundUrl ? (
           <Image
-            src={creator.coverImageUrl}
-            alt={`${creator.displayName} cover`}
+            src={creator.backgroundUrl}
+            alt={`${creator.displayName} background`}
             fill
             className="object-cover transition-transform group-hover:scale-105"
             unoptimized

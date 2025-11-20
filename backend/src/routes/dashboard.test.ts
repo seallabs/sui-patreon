@@ -25,6 +25,7 @@ describe('Dashboard API', () => {
         name: 'test-dashboard-creator',
         bio: 'Test creator for dashboard',
         avatarUrl: 'https://example.com/avatar.png',
+        backgroundUrl: 'https://example.com/background.png',
       },
     });
 

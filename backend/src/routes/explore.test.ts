@@ -41,7 +41,7 @@ describe('Explore API', () => {
         category: 'Music',
         isVerified: true,
         avatarUrl: 'https://example.com/avatar1.jpg',
-        coverImageUrl: 'https://example.com/cover1.jpg',
+        backgroundUrl: 'https://example.com/bg1.jpg',
       },
     });
     testCreator1Id = creator1.id;
@@ -55,6 +55,7 @@ describe('Explore API', () => {
         category: 'Gaming',
         isVerified: false,
         avatarUrl: 'https://example.com/avatar2.jpg',
+        backgroundUrl: 'https://example.com/bg2.jpg',
       },
     });
     testCreator2Id = creator2.id;
@@ -224,7 +225,7 @@ describe('Explore API', () => {
         expect(creator).toHaveProperty('displayName');
         expect(creator).toHaveProperty('bio');
         expect(creator).toHaveProperty('avatarUrl');
-        expect(creator).toHaveProperty('coverImageUrl');
+        expect(creator).toHaveProperty('backgroundUrl');
         expect(creator).toHaveProperty('category');
         expect(creator).toHaveProperty('followerCount');
         expect(creator).toHaveProperty('isVerified');

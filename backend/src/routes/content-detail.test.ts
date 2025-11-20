@@ -24,6 +24,7 @@ describe('GET /api/content/:contentId - Content Detail', () => {
         name: 'testcreator.sui',
         bio: 'Test creator bio',
         avatarUrl: 'https://example.com/avatar.jpg',
+        backgroundUrl: 'https://example.com/background.jpg',
         category: 'Testing',
         isVerified: true,
       },

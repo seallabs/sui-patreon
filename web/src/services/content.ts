@@ -27,7 +27,7 @@ interface ContentDetailApiResponse {
     displayName: string;
     bio: string;
     avatarUrl: string | null;
-    coverImageUrl: string | null;
+    backgroundUrl: string | null;
     category: string;
     isVerified: boolean;
   };

@@ -15,16 +15,17 @@ type DashboardQueryOptions = Omit<
 
 /**
  * React Query hook for fetching dashboard data.
+ * Pass undefined as params to disable the query (e.g., when user has no profile).
  */
 export function useDashboardData(
-  params: DashboardQueryParams = {},
+  params?: DashboardQueryParams,
   options?: DashboardQueryOptions
 ) {
   return useQuery({
     queryKey: ["dashboardData", params],
-    queryFn: () => fetchDashboardData(params),
+    queryFn: () => fetchDashboardData(params!),
     ...options,
-    enabled: !!params.creatorAddress,
+    enabled: !!params && !!params.creatorAddress,
   });
 }
 

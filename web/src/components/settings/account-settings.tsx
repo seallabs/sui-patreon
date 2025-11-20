@@ -43,6 +43,7 @@ export function AccountSettings() {
   const { execute, isLoading: isTransactionLoading } = useTransaction();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const {
@@ -61,6 +62,7 @@ export function AccountSettings() {
   });
 
   const avatar = watch("avatar");
+  const background = watch("background");
   const isLoading = isTransactionLoading || isUploadingAvatar;
 
   // Load current profile data when available
@@ -71,13 +73,14 @@ export function AccountSettings() {
         bio: profile.bio,
       });
       setAvatarPreview(profile.avatarUrl);
+      setBackgroundPreview(profile.backgroundUrl || null);
     }
   }, [profile, reset]);
 
   // Track unsaved changes
   useEffect(() => {
-    setHasUnsavedChanges(isDirty || !!avatar);
-  }, [isDirty, avatar]);
+    setHasUnsavedChanges(isDirty || !!avatar || !!background);
+  }, [isDirty, avatar, background]);
 
   // Warn user before leaving with unsaved changes
   useEffect(() => {
@@ -114,6 +117,28 @@ export function AccountSettings() {
     setAvatarPreview(profile?.avatarUrl || null);
   };
 
+  // Handle background file selection
+  const handleBackgroundChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Set file in form
+    setValue("background", file, { shouldValidate: true });
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBackgroundPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Clear background selection (revert to current background)
+  const handleClearBackground = () => {
+    setValue("background", undefined, { shouldValidate: true });
+    setBackgroundPreview(profile?.backgroundUrl || null);
+  };
+
   // Form submission handler
   const onSubmit = async (data: UpdateProfileFormData) => {
     if (!profile) {
@@ -122,6 +147,7 @@ export function AccountSettings() {
 
     try {
       let avatarUrl = profile.avatarUrl;
+      let backgroundUrl = profile.backgroundUrl || "";
 
       // Step 1: Upload new avatar if changed
       if (data.avatar) {
@@ -141,7 +167,25 @@ export function AccountSettings() {
         setIsUploadingAvatar(false);
       }
 
-      // Step 2: Update profile on Sui blockchain
+      // Step 2: Upload new background if changed
+      if (data.background) {
+        setIsUploadingAvatar(true);
+
+        try {
+          backgroundUrl = await uploadAvatar(data.background);
+          console.log("Background uploaded successfully:", backgroundUrl);
+        } catch (error) {
+          console.error("Background upload failed:", error);
+          setIsUploadingAvatar(false);
+          throw new Error(
+            error instanceof Error ? error.message : "Failed to upload background image"
+          );
+        }
+
+        setIsUploadingAvatar(false);
+      }
+
+      // Step 3: Update profile on Sui blockchain
       await execute(
         (tx) => {
           tx.moveCall({
@@ -151,6 +195,7 @@ export function AccountSettings() {
               tx.pure.string(data.name),
               tx.pure.string(data.bio || ""),
               tx.pure.string(avatarUrl),
+              tx.pure.string(backgroundUrl),
               tx.object(SUI_CLOCK_OBJECT_ID),
             ],
           });
@@ -170,7 +215,9 @@ export function AccountSettings() {
                 bio: data.bio,
               });
               setValue("avatar", undefined);
+              setValue("background", undefined);
               setAvatarPreview(avatarUrl);
+              setBackgroundPreview(backgroundUrl);
               setHasUnsavedChanges(false);
             }, 3000);
           },
@@ -190,7 +237,9 @@ export function AccountSettings() {
         bio: profile.bio,
       });
       setValue("avatar", undefined);
+      setValue("background", undefined);
       setAvatarPreview(profile.avatarUrl);
+      setBackgroundPreview(profile.backgroundUrl || null);
       setHasUnsavedChanges(false);
     }
   };
@@ -330,6 +379,77 @@ export function AccountSettings() {
 
           {errors.avatar && (
             <p className="text-sm text-red-500">{errors.avatar.message}</p>
+          )}
+        </div>
+
+        {/* Background Image Upload */}
+        <div className="space-y-2">
+          <Label htmlFor="background">Background Image</Label>
+
+          <div className="flex items-start gap-4">
+            {backgroundPreview ? (
+              <div className="relative w-full">
+                <input
+                  id="background"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  onChange={handleBackgroundChange}
+                  disabled={isLoading}
+                  className="sr-only"
+                />
+                <label
+                  htmlFor="background"
+                  className="relative block aspect-[3/1] w-full cursor-pointer overflow-hidden rounded-lg border border-border transition-opacity hover:opacity-80"
+                >
+                  <img
+                    src={backgroundPreview}
+                    alt="Background preview"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
+                    <ImageIcon className="h-8 w-8 text-white" />
+                  </div>
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-500 text-white hover:bg-red-600"
+                  onClick={handleClearBackground}
+                  disabled={isLoading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="relative w-full">
+                <input
+                  id="background"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  onChange={handleBackgroundChange}
+                  disabled={isLoading}
+                  className="sr-only"
+                />
+                <label
+                  htmlFor="background"
+                  className="flex aspect-[3/1] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/50 transition-colors hover:bg-muted"
+                >
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Upload Background
+                  </span>
+                </label>
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            JPEG or PNG, max 10MB. Recommended: 1200x400px. {backgroundPreview ? "Click image to change or X to remove." : "Upload an image."}
+          </p>
+
+          {errors.background && (
+            <p className="text-sm text-red-500">{errors.background.message}</p>
           )}
         </div>
 

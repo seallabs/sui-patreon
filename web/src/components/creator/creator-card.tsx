@@ -16,12 +16,12 @@ export function CreatorCard({ creator, variant = "default" }: CreatorCardProps &
         variant === "compact" ? "w-[280px]" : "w-full"
       }`}
     >
-      {/* Cover Image - Made larger and more prominent */}
+      {/* Background Image - Made larger and more prominent */}
       <div className="relative aspect-[16/7] w-full overflow-hidden bg-muted">
-        {creator.coverImageUrl ? (
+        {creator.backgroundUrl ? (
           <Image
-            src={creator.coverImageUrl}
-            alt={`${creator.displayName} cover`}
+            src={creator.backgroundUrl}
+            alt={`${creator.displayName} background`}
             fill
             className="object-cover transition-transform group-hover:scale-105"
             unoptimized

@@ -2,9 +2,16 @@
 
 A decentralized creator subscription platform built on Sui blockchain, enabling creators to monetize content through tiered subscriptions with access control.
 
-## 🆕 Recent Updates (2025-11-19)
+## 🆕 Recent Updates
 
-### Profile Module Changes
+### Latest Changes (2025-11-20)
+- ✅ **Added background_url field**: Creator profiles now support background/banner images
+- ✅ **Updated ProfileCreated event**: Includes `background_url` field for complete indexing
+- ✅ **Updated ProfileUpdated event**: Includes `background_url` field
+- ✅ **New view function**: `background_url()` for querying background images
+- ✅ **Breaking change**: `create_profile()` and `update_profile()` now require `background_url` parameter
+
+### Previous Updates (2025-11-19)
 - ✅ **Reverted to explicit profile fields**: Changed from `info: vector<u8>` to structured fields (`name`, `bio`, `avatar_url`, `created_at`)
 - ✅ **Complete event data**: `ProfileCreated` now includes ALL profile fields (bio, avatar_url) for off-chain indexing
 - ✅ **Enhanced events**: `ProfileUpdated` includes all updated profile data
@@ -193,11 +200,12 @@ Manages creator identities on the platform.
 
 | Function | Visibility | Description |
 |----------|-----------|-------------|
-| `create_profile()` | public | Creates a new creator profile with name, bio, avatar_url |
-| `update_profile()` | public | Updates profile fields: name, bio, avatar_url (owner-only) |
+| `create_profile()` | public | Creates a new creator profile with name, bio, avatar_url, background_url |
+| `update_profile()` | public | Updates profile fields: name, bio, avatar_url, background_url (owner-only) |
 | `name()` | public | Returns creator's name |
 | `bio()` | public | Returns creator's bio |
 | `avatar_url()` | public | Returns creator's avatar URL |
+| `background_url()` | public | Returns creator's background URL |
 | `created_at()` | public | Returns profile creation timestamp |
 
 #### Error Codes
@@ -319,6 +327,7 @@ public struct CreatorProfile has store {
     name: String,            // Creator name (e.g., "alice.sui")
     bio: String,             // Creator bio/description
     avatar_url: String,      // Avatar image URL
+    background_url: String,  // Background/banner image URL
     created_at: u64,         // Creation timestamp (ms)
 }
 ```
@@ -498,6 +507,7 @@ public struct ProfileCreated has copy, drop {
     name: String,
     bio: String,           // Full profile data for indexing
     avatar_url: String,    // Full profile data for indexing
+    background_url: String, // Full profile data for indexing
     timestamp: u64,
 }
 
@@ -507,6 +517,7 @@ public struct ProfileUpdated has copy, drop {
     name: String,
     bio: String,
     avatar_url: String,
+    background_url: String,
     timestamp: u64,
 }
 ```
@@ -589,7 +600,8 @@ async function createProfile(
   clockId: string,
   name: string,
   bio: string,
-  avatarUrl: string
+  avatarUrl: string,
+  backgroundUrl: string
 ) {
   const tx = new TransactionBlock();
 
@@ -600,6 +612,7 @@ async function createProfile(
       tx.pure(name),
       tx.pure(bio),
       tx.pure(avatarUrl),
+      tx.pure(backgroundUrl),
       tx.object(clockId),
     ],
   });

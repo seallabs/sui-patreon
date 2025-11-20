@@ -21,6 +21,7 @@ interface CreatorResponse {
   name: string;
   bio: string;
   avatarUrl: string | null;
+  backgroundUrl: string | null;
   category: string;
   followerCount: number;
   isVerified: boolean;
@@ -336,6 +337,7 @@ function formatCreatorResponse(
     name: creator.name,
     bio: creator.bio,
     avatarUrl: creator.avatarUrl,
+    backgroundUrl: creator.backgroundUrl,
     category: 'Creator', // Default category for now
     followerCount,
     isVerified: false, // Default false for now

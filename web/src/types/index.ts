@@ -9,7 +9,7 @@ export interface CreatorProfile {
   displayName: string;
   bio: string;
   avatarUrl: string;
-  coverImageUrl?: string;
+  backgroundUrl?: string; // Background banner image
   category: string;
   followerCount: number;
   isVerified: boolean;
@@ -165,7 +165,7 @@ export interface ExploreCreator {
   displayName: string;
   bio: string;
   avatarUrl: string | null;
-  coverImageUrl: string | null;
+  backgroundUrl?: string | null; // Background banner image
   category: string;
   followerCount: number;
   isVerified: boolean;

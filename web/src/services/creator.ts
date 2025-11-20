@@ -12,7 +12,7 @@ interface CreatorProfileApiResponse {
     name: string;
     bio: string;
     avatarUrl: string | null;
-    coverImageUrl: string | null;
+    backgroundUrl: string | null;
     followerCount: number;
     joinedDate: string; // ISO date string
     category: string;
@@ -106,7 +106,7 @@ function mapToCreatorProfileData(
     displayName: creator.name,
     bio: creator.bio,
     avatarUrl: creator.avatarUrl || generateDefaultAvatar(creator.address),
-    coverImageUrl: creator.coverImageUrl || undefined,
+    backgroundUrl: creator.backgroundUrl || undefined,
     category: creator.category,
     followerCount: creator.followerCount,
     isVerified: creator.isVerified,

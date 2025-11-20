@@ -177,7 +177,7 @@ router.get('/:contentId', async (req: Request, res: Response) => {
         displayName: creator.name,
         bio: creator.bio,
         avatarUrl: creator.avatarUrl,
-        coverImageUrl: creator.coverImageUrl,
+        backgroundUrl: creator.backgroundUrl,
         category: creator.category,
         isVerified: creator.isVerified,
       },

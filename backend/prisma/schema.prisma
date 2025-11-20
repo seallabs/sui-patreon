@@ -19,7 +19,7 @@ model Creator {
   name          String   @unique // Unique creator name (e.g., SuiNS name)
   bio           String   @default("")
   avatarUrl     String? // Optional avatar image URL
-  coverImageUrl String? // Optional cover/banner image URL
+  backgroundUrl String? // Optional background/banner image URL
   category      String   @default("Creator") // Creator category (e.g., "Podcasts & shows", "Music")
   isVerified    Boolean  @default(false) // Verified creator badge
   createdAt     DateTime @default(now())

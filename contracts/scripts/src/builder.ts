@@ -47,12 +47,14 @@ function displayEvents(result: any): void {
  * @param name - Creator name (e.g., "alice.sui")
  * @param bio - Creator bio/description
  * @param avatarUrl - Avatar image URL
+ * @param backgroundUrl - Background/banner image URL
  */
-export async function createProfile(name: string, bio: string, avatarUrl: string) {
+export async function createProfile(name: string, bio: string, avatarUrl: string, backgroundUrl: string) {
   console.log('\n🎭 Creating Profile...');
   console.log(`   Name: ${name}`);
   console.log(`   Bio: ${bio}`);
   console.log(`   Avatar: ${avatarUrl}`);
+  console.log(`   Background: ${backgroundUrl}`);
 
   try {
     const tx = new Transaction();
@@ -63,6 +65,7 @@ export async function createProfile(name: string, bio: string, avatarUrl: string
         tx.pure.string(name),
         tx.pure.string(bio),
         tx.pure.string(avatarUrl),
+        tx.pure.string(backgroundUrl),
         tx.object(SUI_CLOCK_OBJECT_ID),
       ],
     });

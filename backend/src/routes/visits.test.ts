@@ -30,6 +30,7 @@ describe('Visits API', () => {
         name: 'test-visit-creator-1',
         bio: 'First test creator',
         avatarUrl: 'https://example.com/avatar1.png',
+        backgroundUrl: 'https://example.com/bg1.png',
       },
     });
 
@@ -40,6 +41,7 @@ describe('Visits API', () => {
         name: 'test-visit-creator-2',
         bio: 'Second test creator',
         avatarUrl: null,
+        backgroundUrl: null,
       },
     });
 
@@ -50,6 +52,7 @@ describe('Visits API', () => {
         name: 'test-visit-creator-3',
         bio: 'Third test creator',
         avatarUrl: 'https://example.com/avatar3.png',
+        backgroundUrl: 'https://example.com/bg3.png',
       },
     });
 

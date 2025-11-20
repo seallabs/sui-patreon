@@ -15,6 +15,9 @@ import { useCurrentAccount } from '@mysten/dapp-kit';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useUser } from '@/contexts/user-context';
+import { useCreatorProfile } from '@/hooks/useCreatorProfile';
+import { CreateProfileModal } from '@/components/creator/create-profile-modal';
+import { useRouter } from 'next/navigation';
 
 // Mock wallet address for development
 const MOCK_WALLET_ADDRESS =
@@ -38,7 +41,11 @@ function getWalrusUrl(patchId: string): string {
 }
 
 export default function CreatorDashboard() {
+  const router = useRouter();
   const { user } = useUser();
+  const { hasProfile, isLoading: isLoadingProfile, refetch } = useCreatorProfile();
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
   // Use user context address, fallback to mock for development
   const userAddress = user?.address || MOCK_WALLET_ADDRESS;
   const [filters, setFilters] = useState<DashboardQueryParams>({
@@ -51,8 +58,19 @@ export default function CreatorDashboard() {
   });
 
   const queryClient = useQueryClient();
-  const { data: dashboardData, isLoading, error } = useDashboardData(filters);
+  // Only fetch dashboard data if user has a profile
+  const shouldFetchDashboard = user && hasProfile;
+  const { data: dashboardData, isLoading, error } = useDashboardData(
+    shouldFetchDashboard ? filters : undefined
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Check if user needs to create a profile
+  useEffect(() => {
+    if (!isLoadingProfile && user && !hasProfile) {
+      setShowProfileModal(true);
+    }
+  }, [isLoadingProfile, user, hasProfile]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters: Partial<DashboardQueryParams>) => {
@@ -148,6 +166,14 @@ export default function CreatorDashboard() {
       }))
     : [];
 
+  // Handle profile creation success
+  const handleProfileCreated = async () => {
+    setShowProfileModal(false);
+    // Refetch creator profile to update hasProfile state
+    await refetch();
+    // Dashboard data will automatically refetch when hasProfile becomes true
+  };
+
   useEffect(() => {
     setFilters({ creatorAddress: userAddress });
   }, [userAddress]);
@@ -169,7 +195,7 @@ export default function CreatorDashboard() {
         )}
 
         {/* Loading State */}
-        {isLoading && !dashboardData ? (
+        {(isLoading || isLoadingProfile) && !dashboardData ? (
           <div className='flex min-h-[400px] items-center justify-center'>
             <div className='text-center'>
               <div className='mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent'></div>
@@ -201,6 +227,13 @@ export default function CreatorDashboard() {
           </>
         )}
       </main>
+
+      {/* Profile Creation Modal */}
+      <CreateProfileModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        onSuccess={handleProfileCreated}
+      />
     </AdaptiveLayout>
   );
 }

@@ -33,7 +33,7 @@ interface CreatorResponse {
   displayName: string;
   bio: string;
   avatarUrl: string | null;
-  coverImageUrl: string | null;
+  backgroundUrl: string | null;
   category: string;
   followerCount: number;
   isVerified: boolean;
@@ -335,7 +335,7 @@ function formatCreatorResponse(creator: any, followerCount: number): CreatorResp
     displayName: creator.name || `Creator ${creator.address.slice(0, 6)}`,
     bio: creator.bio,
     avatarUrl: creator.avatarUrl || null,
-    coverImageUrl: creator.coverImageUrl || null,
+    backgroundUrl: creator.backgroundUrl || null,
     category: creator.category || 'Creator',
     followerCount,
     isVerified: creator.isVerified || false,

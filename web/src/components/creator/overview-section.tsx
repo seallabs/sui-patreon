@@ -35,7 +35,7 @@ export function OverviewSection({ analytics }: OverviewSectionProps) {
             Total Revenue
           </div>
           <div className="text-3xl font-bold">
-            {analytics.monthlyRevenue.toFixed(2)} SUI
+            {analytics.monthlyRevenue.toFixed(2)} USDC
           </div>
           <div className="mt-1 text-sm text-muted-foreground">all-time earnings</div>
         </div>

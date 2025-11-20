@@ -390,7 +390,7 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       name: creator.name,
       bio: creator.bio,
       avatarUrl: creator.avatarUrl,
-      coverImageUrl: creator.coverImageUrl,
+      backgroundUrl: creator.backgroundUrl,
       followerCount,
       joinedDate: creator.createdAt,
       category: creator.category,

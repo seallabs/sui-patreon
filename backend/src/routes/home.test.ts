@@ -55,6 +55,7 @@ describe('Home API', () => {
         name: 'test-home-creator-1',
         bio: 'Popular creator with many subscribers',
         avatarUrl: 'https://example.com/avatar1.png',
+        backgroundUrl: 'https://example.com/bg1.png',
       },
     });
 
@@ -65,6 +66,7 @@ describe('Home API', () => {
         name: 'test-home-creator-2',
         bio: 'Creator with lots of content',
         avatarUrl: 'https://example.com/avatar2.png',
+        backgroundUrl: 'https://example.com/bg2.png',
       },
     });
 

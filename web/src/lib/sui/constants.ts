@@ -6,16 +6,16 @@ import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
 
 // Contract Configuration
 export const PACKAGE_ID =
-  '0x1caafd43a5da2f0668b505533cc72208db7f94f5f9bb86f26a5ebb2476de3787';
+  '0xcac1eabc44bc10496c5adb8892fd20f242e7e1b08974c097fc6020590d976990';
 
 export const PROFILE_REGISTRY =
-  '0xee65eb125108c861547a574fdbe0463857426a30dbe38ed985cabaac76dbe881';
+  '0xd02a58df3d27e47de49c06fde47156b6306eb4846e9b49ac30503db0b1a0a3f9';
 
 export const TIER_REGISTRY =
-  '0x02e7083f1b1c481fbf97b9d14b413a7f46707bef0a7d761b9faeea0bb42adb92';
+  '0x8ca897415986fca16690214cc530ccb4f595f57cafb238d27d5d8832136aec45';
 
 export const CONTENT_REGISTRY =
-  '0x5e907d8cbd38f9f99b8704deb76c193a1bb432bad42f510c1416555b1bed8a86';
+  '0x15fa8c2e8dad5f9751eb7abdbfcecf9d5d50097d4e4e49f68e979413340a9f56';
 
 // System Objects
 export { SUI_CLOCK_OBJECT_ID };

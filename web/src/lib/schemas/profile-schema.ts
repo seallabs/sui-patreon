@@ -32,6 +32,18 @@ export const profileFormSchema = z.object({
       'Avatar must be a JPEG or PNG image'
     ),
 
+  background: z
+    .instanceof(File)
+    .refine(
+      (file) => file.size <= 10 * 1024 * 1024,
+      'Background image must be less than 10MB'
+    )
+    .refine(
+      (file) => ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type),
+      'Background image must be a JPEG or PNG image'
+    )
+    .optional(),
+
   isAdultContent: z.boolean().default(false),
 });
 

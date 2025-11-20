@@ -105,7 +105,7 @@ bun start create-profile --help
 Create a new creator profile on the platform.
 
 ```bash
-bun start create-profile "<name>" "<bio>" "<avatar-url>"
+bun start create-profile "<name>" "<bio>" "<avatar-url>" "<background-url>"
 ```
 
 **Example:**
@@ -113,12 +113,13 @@ bun start create-profile "<name>" "<bio>" "<avatar-url>"
 bun start create-profile \
   "Alice Artist" \
   "Digital creator specializing in NFT art" \
-  "https://example.com/alice-avatar.jpg"
+  "https://example.com/alice-avatar.jpg" \
+  "https://example.com/alice-background.jpg"
 ```
 
 **Output:**
 - Transaction digest
-- ProfileCreated event with ALL profile data (name, bio, avatar_url)
+- ProfileCreated event with ALL profile data (name, bio, avatar_url, background_url)
 - Profile is stored in the ProfileRegistry
 
 **Note:** Each wallet address can only create one profile.
@@ -451,7 +452,8 @@ Here's a complete end-to-end example from creator setup to content access.
 bun start create-profile \
   "alice.sui" \
   "Professional photographer sharing exclusive content" \
-  "https://cdn.example.com/alice-avatar.jpg"
+  "https://cdn.example.com/alice-avatar.jpg" \
+  "https://cdn.example.com/alice-background.jpg"
 ```
 
 Save the creator address from your wallet (you'll need it later).
@@ -659,7 +661,7 @@ sui client objects
 | Command | Description | Example |
 |---------|-------------|---------|
 | **Profile & Tiers** |
-| `create-profile` | Create creator profile | `bun start create-profile "Alice" "Bio" "URL"` |
+| `create-profile` | Create creator profile | `bun start create-profile "Alice" "Bio" "avatar-url" "background-url"` |
 | `create-tier` | Create subscription tier | `bun start create-tier "Premium" "Description" 5000000` |
 | `deactivate-tier` | Deactivate a tier | `bun start deactivate-tier 0xTIER_ID` |
 | **Subscriptions** |

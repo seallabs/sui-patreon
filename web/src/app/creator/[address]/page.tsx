@@ -242,12 +242,12 @@ export default function CreatorProfilePage({ params }: PageProps) {
         <Header />
 
         <main>
-          {/* Cover Image */}
+          {/* Background/Cover Image */}
           <div className="relative h-64 w-full overflow-hidden bg-muted">
-            {creator.coverImageUrl ? (
+            {creator.backgroundUrl ? (
               <Image
-                src={creator.coverImageUrl}
-                alt={`${creator.displayName} cover`}
+                src={creator.backgroundUrl}
+                alt={`${creator.displayName} background`}
                 fill
                 className="object-cover"
               />

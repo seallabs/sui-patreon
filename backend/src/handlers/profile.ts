@@ -17,12 +17,13 @@ export async function handleProfileCreated(
   eventSeq: string
 ): Promise<void> {
   try {
-    const { profile_id, creator, name, bio, avatar_url, timestamp } = event.parsedJson as {
+    const { profile_id, creator, name, bio, avatar_url, background_url, timestamp } = event.parsedJson as {
       profile_id: string;
       creator: string;
       name: string;
       bio: string;
       avatar_url: string;
+      background_url: string;
       timestamp: string;
     };
 
@@ -36,6 +37,7 @@ export async function handleProfileCreated(
         name: name,
         bio: bio,
         avatarUrl: avatar_url || null,
+        backgroundUrl: background_url || null,
       },
       create: {
         address: creator,
@@ -43,6 +45,7 @@ export async function handleProfileCreated(
         name: name,
         bio: bio,
         avatarUrl: avatar_url || null,
+        backgroundUrl: background_url || null,
       },
     });
 
@@ -64,12 +67,13 @@ export async function handleProfileUpdated(
   eventSeq: string
 ): Promise<void> {
   try {
-    const { profile_id, name, bio, avatar_url } = event.parsedJson as {
+    const { profile_id, name, bio, avatar_url, background_url } = event.parsedJson as {
       profile_id: string;
       creator: string;
       name: string;
       bio: string;
       avatar_url: string;
+      background_url: string;
       timestamp: string;
     };
 
@@ -97,6 +101,7 @@ export async function handleProfileUpdated(
             name: name,
             bio: bio,
             avatarUrl: avatar_url || null,
+            backgroundUrl: background_url || null,
             updatedAt: new Date(),
           },
         });

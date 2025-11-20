@@ -10,7 +10,7 @@ interface FormData {
   bio: string;
   category: string;
   avatarUrl: string;
-  coverImageUrl: string;
+  backgroundUrl: string;
 }
 
 /**
@@ -25,7 +25,7 @@ export function CreateProfileForm() {
     bio: "",
     category: "",
     avatarUrl: "",
-    coverImageUrl: "",
+    backgroundUrl: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,13 +144,13 @@ export function CreateProfileForm() {
       </div>
 
       <div>
-        <label htmlFor="coverImageUrl" className="mb-2 block text-sm font-medium">
-          Cover Image URL
+        <label htmlFor="backgroundUrl" className="mb-2 block text-sm font-medium">
+          Background Image URL
         </label>
         <Input
-          id="coverImageUrl"
-          name="coverImageUrl"
-          value={formData.coverImageUrl}
+          id="backgroundUrl"
+          name="backgroundUrl"
+          value={formData.backgroundUrl}
           onChange={handleChange}
           placeholder="https://..."
           type="url"

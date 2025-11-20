@@ -27,11 +27,12 @@ program
   .argument('<name>', 'Creator name (e.g., "alice.sui" or "Alice Artist")')
   .argument('<bio>', 'Creator bio/description')
   .argument('<avatarUrl>', 'Avatar image URL')
+  .argument('<backgroundUrl>', 'Background/banner image URL')
   .action(createProfile)
   .addHelpText(
     'after',
     '\nExample:\n' +
-      '  $ bun start create-profile "Alice Artist" "Digital creator" "https://example.com/avatar.jpg"\n'
+      '  $ bun start create-profile "Alice Artist" "Digital creator" "https://example.com/avatar.jpg" "https://example.com/background.jpg"\n'
   );
 
 // =============================================================================

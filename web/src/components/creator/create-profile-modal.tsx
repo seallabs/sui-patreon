@@ -54,6 +54,7 @@ export function CreateProfileModal({
   const { execute, isLoading: isTransactionLoading } = useTransaction();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
 
   const {
     register,
@@ -72,6 +73,7 @@ export function CreateProfileModal({
   });
 
   const avatar = watch("avatar");
+  const background = watch("background");
   const isLoading = isTransactionLoading || isUploadingAvatar;
 
   // Handle avatar file selection
@@ -96,12 +98,35 @@ export function CreateProfileModal({
     setAvatarPreview(null);
   };
 
+  // Handle background file selection
+  const handleBackgroundChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Set file in form
+    setValue("background", file, { shouldValidate: true });
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBackgroundPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Clear background selection
+  const handleClearBackground = () => {
+    setValue("background", undefined as any, { shouldValidate: true });
+    setBackgroundPreview(null);
+  };
+
   // Form submission handler
   const onSubmit = async (data: ProfileFormData) => {
     try {
       // Step 1: Upload avatar to MinIO
       setIsUploadingAvatar(true);
       let avatarUrl: string;
+      let backgroundUrl = "";
 
       try {
         avatarUrl = await uploadAvatar(data.avatar);
@@ -114,9 +139,23 @@ export function CreateProfileModal({
         );
       }
 
+      // Step 2: Upload background image if provided
+      if (data.background) {
+        try {
+          backgroundUrl = await uploadAvatar(data.background);
+          console.log("Background uploaded successfully:", backgroundUrl);
+        } catch (error) {
+          console.error("Background upload failed:", error);
+          setIsUploadingAvatar(false);
+          throw new Error(
+            error instanceof Error ? error.message : "Failed to upload background image"
+          );
+        }
+      }
+
       setIsUploadingAvatar(false);
 
-      // Step 2: Create profile on Sui blockchain
+      // Step 3: Create profile on Sui blockchain
       await execute(
         (tx) => {
           tx.moveCall({
@@ -126,6 +165,7 @@ export function CreateProfileModal({
               tx.pure.string(data.name),
               tx.pure.string(data.bio || ""),
               tx.pure.string(avatarUrl),
+              tx.pure.string(backgroundUrl),
               tx.object(SUI_CLOCK_OBJECT_ID),
             ],
           });
@@ -137,6 +177,7 @@ export function CreateProfileModal({
             // Reset form and close modal
             reset();
             setAvatarPreview(null);
+            setBackgroundPreview(null);
             onOpenChange(false);
 
             // Call success callback
@@ -248,6 +289,61 @@ export function CreateProfileModal({
 
             {errors.avatar && (
               <p className="text-sm text-red-500">{errors.avatar.message}</p>
+            )}
+          </div>
+
+          {/* Background Image Upload */}
+          <div className="space-y-2">
+            <Label htmlFor="background">Background Image</Label>
+
+            {backgroundPreview ? (
+              <div className="relative">
+                <div className="relative aspect-[3/1] w-full overflow-hidden rounded-lg border border-border">
+                  <img
+                    src={backgroundPreview}
+                    alt="Background preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-red-500 text-white hover:bg-red-600"
+                  onClick={handleClearBackground}
+                  disabled={isLoading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  id="background"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  onChange={handleBackgroundChange}
+                  disabled={isLoading}
+                  className="sr-only"
+                />
+                <label
+                  htmlFor="background"
+                  className="flex aspect-[3/1] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/50 transition-colors hover:bg-muted"
+                >
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Upload Background
+                  </span>
+                </label>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              JPEG or PNG, max 10MB. Recommended: 1200x400px
+            </p>
+
+            {errors.background && (
+              <p className="text-sm text-red-500">{errors.background.message}</p>
             )}
           </div>
 

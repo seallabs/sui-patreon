@@ -19,6 +19,7 @@ public struct ProfileCreated has copy, drop {
     name: String,
     bio: String,
     avatar_url: String,
+    background_url: String,
     timestamp: u64,
 }
 
@@ -29,6 +30,7 @@ public struct ProfileUpdated has copy, drop {
     name: String,
     bio: String,
     avatar_url: String,
+    background_url: String,
     timestamp: u64,
 }
 
@@ -44,6 +46,7 @@ public struct CreatorProfile has store {
     name: String,
     bio: String,
     avatar_url: String,
+    background_url: String,
     created_at: u64,
 }
 
@@ -62,6 +65,7 @@ public fun create_profile(
     name: String,
     bio: String,
     avatar_url: String,
+    background_url: String,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
@@ -74,6 +78,7 @@ public fun create_profile(
         name,
         bio,
         avatar_url,
+        background_url,
         created_at,
     };
 
@@ -84,6 +89,7 @@ public fun create_profile(
         name: profile.name,
         bio: profile.bio,
         avatar_url: profile.avatar_url,
+        background_url: profile.background_url,
         timestamp: created_at,
     });
 
@@ -97,6 +103,7 @@ public fun update_profile(
     name: String,
     bio: String,
     avatar_url: String,
+    background_url: String,
     clock: &Clock,
     ctx: &TxContext,
 ) {
@@ -108,6 +115,7 @@ public fun update_profile(
     profile.name = name;
     profile.bio = bio;
     profile.avatar_url = avatar_url;
+    profile.background_url = background_url;
 
     // Emit update event
     event::emit(ProfileUpdated {
@@ -116,6 +124,7 @@ public fun update_profile(
         name: profile.name,
         bio: profile.bio,
         avatar_url: profile.avatar_url,
+        background_url: profile.background_url,
         timestamp: clock.timestamp_ms(),
     });
 }
@@ -144,4 +153,10 @@ public fun avatar_url(registry: &ProfileRegistry, creator: address): String {
 public fun created_at(registry: &ProfileRegistry, creator: address): u64 {
     assert!(registry.profiles.contains(creator), EProfileNotFound);
     registry.profiles.borrow(creator).created_at
+}
+
+/// Get profile background URL
+public fun background_url(registry: &ProfileRegistry, creator: address): String {
+    assert!(registry.profiles.contains(creator), EProfileNotFound);
+    registry.profiles.borrow(creator).background_url
 }

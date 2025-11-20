@@ -14,6 +14,7 @@ const TEST_CREATOR = {
   name: 'test-creator.sui',
   bio: 'Digital artist and creator',
   avatarUrl: 'https://example.com/alice.jpg',
+  backgroundUrl: 'https://example.com/alice-bg.jpg',
 };
 
 const TEST_SUBSCRIBER = '0x9999999999999999999999999999999999999999999999999999999999999999';

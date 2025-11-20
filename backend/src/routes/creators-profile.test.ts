@@ -58,7 +58,7 @@ describe('Creator Profile API', () => {
         name: 'test-profile-creator.sui',
         bio: 'Test creator bio for profile testing',
         avatarUrl: 'https://example.com/avatar.png',
-        coverImageUrl: 'https://example.com/cover.png',
+        backgroundUrl: 'https://example.com/background.png',
         category: 'Podcasts & shows',
         isVerified: true,
       },
@@ -289,7 +289,7 @@ describe('Creator Profile API', () => {
       expect(creator.name).toBe(testCreator.name);
       expect(creator.bio).toBe(testCreator.bio);
       expect(creator.avatarUrl).toBe(testCreator.avatarUrl);
-      expect(creator.coverImageUrl).toBe(testCreator.coverImageUrl);
+      expect(creator.backgroundUrl).toBe(testCreator.backgroundUrl);
       expect(creator.category).toBe(testCreator.category);
       expect(creator.isVerified).toBe(testCreator.isVerified);
       expect(creator.followerCount).toBe(3); // 2 active from tier1 + 1 active from tier2

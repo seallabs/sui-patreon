@@ -31,6 +31,18 @@ export const updateProfileFormSchema = z.object({
       'Avatar must be a JPEG or PNG image'
     )
     .optional(),
+
+  background: z
+    .instanceof(File)
+    .refine(
+      (file) => file.size <= 10 * 1024 * 1024,
+      'Background image must be less than 10MB'
+    )
+    .refine(
+      (file) => ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type),
+      'Background image must be a JPEG or PNG image'
+    )
+    .optional(),
 });
 
 export type UpdateProfileFormData = z.infer<typeof updateProfileFormSchema>;
