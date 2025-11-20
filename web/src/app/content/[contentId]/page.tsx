@@ -256,6 +256,7 @@ export default function ContentDetailPage({ params }: PageProps) {
 
   // Handle creator navigation
   const handleCreatorClick = () => {
+    if (!contentData) return;
     router.push(`/creator/${contentData.creator.address}`);
   };
 
