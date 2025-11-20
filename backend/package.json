@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun --hot src/index.ts",
     "indexer": "bun --watch src/indexer.ts",
-    "build": "bun build src/index.ts --outdir dist",
+    "build": "npx prisma generate",
     "start": "NODE_ENV=production bun src/index.ts",
     "start:railway": "bash start-railway.sh",
     "start:node": "NODE_ENV=production node src/index.ts",
@@ -29,7 +29,8 @@
     "@prisma/client": "6.19.0",
     "cors": "2.8.5",
     "dotenv": "17.2.3",
-    "express": "5.1.0"
+    "express": "5.1.0",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/bun": "1.3.2",

@@ -24,63 +24,30 @@ npx prisma generate
 
 # 3. Test database connectivity
 echo "🔌 Testing database connection..."
-node -e "
-const { PrismaClient } = require('@prisma/client');
+npx tsx -e "
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-prisma.\$connect()
-  .then(() => {
-    console.log('✅ Database connected successfully');
-    prisma.\$disconnect();
-  })
-  .catch((err) => {
-    console.error('❌ Database connection failed:', err.message);
-    process.exit(1);
-  });
+await prisma.\$connect();
+console.log('✅ Database connected successfully');
+await prisma.\$disconnect();
 "
 
 # 4. Start API server and indexer in parallel using Node.js
 echo "🌐 Starting API server and indexer..."
 echo "================================================"
 
-# Use node to run both processes
-node -e "
-const { spawn } = require('child_process');
+# Use npx tsx to run both TypeScript processes
+npx tsx src/index.ts &
+API_PID=$!
 
-// Start API server
-const api = spawn('node', ['src/index.ts'], {
-  stdio: 'inherit',
-  env: { ...process.env, NODE_ENV: 'production' }
-});
+npx tsx src/indexer.ts &
+INDEXER_PID=$!
 
-// Start indexer
-const indexer = spawn('node', ['src/indexer.ts'], {
-  stdio: 'inherit',
-  env: { ...process.env, NODE_ENV: 'production' }
-});
+echo "✅ API server started (PID: $API_PID)"
+echo "✅ Indexer started (PID: $INDEXER_PID)"
 
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('⚠️ Received SIGTERM, shutting down gracefully...');
-  api.kill('SIGTERM');
-  indexer.kill('SIGTERM');
-});
+# Handle graceful shutdown
+trap "echo '⚠️ Shutting down...'; kill $API_PID $INDEXER_PID 2>/dev/null; exit 0" SIGTERM SIGINT
 
-process.on('SIGINT', () => {
-  console.log('⚠️ Received SIGINT, shutting down gracefully...');
-  api.kill('SIGINT');
-  indexer.kill('SIGINT');
-});
-
-// Exit if either process exits
-api.on('exit', (code) => {
-  console.error('❌ API server exited with code', code);
-  indexer.kill();
-  process.exit(code || 1);
-});
-
-indexer.on('exit', (code) => {
-  console.error('❌ Indexer exited with code', code);
-  api.kill();
-  process.exit(code || 1);
-});
-"
+# Wait for both processes
+wait
