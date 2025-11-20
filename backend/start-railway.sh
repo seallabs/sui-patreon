@@ -22,17 +22,7 @@ fi
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
-# 3. Test database connectivity
-echo "🔌 Testing database connection..."
-npx tsx -e "
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
-await prisma.\$connect();
-console.log('✅ Database connected successfully');
-await prisma.\$disconnect();
-"
-
-# 4. Start API server and indexer in parallel using Node.js
+# 3. Start API server and indexer in parallel
 echo "🌐 Starting API server and indexer..."
 echo "================================================"
 
