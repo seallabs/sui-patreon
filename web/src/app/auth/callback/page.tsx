@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { completeZkLogin } from "@/lib/zklogin/auth";
+// import { completeZkLogin } from "@/lib/zklogin/auth"; // TODO: Implement auth module
 import { useUser } from "@/contexts/user-context";
 
 /**
