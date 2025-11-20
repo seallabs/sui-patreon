@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { DashboardQueryParams } from '@/services/dashboard';
 import { Content, PostFilter, SubscriptionTier } from '@/types';
 import { ChevronDown, Filter, Search } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -209,11 +208,10 @@ export function RecentPosts({
                   {/* Post Image */}
                   {post.thumbnailUrl && (
                     <div className='relative aspect-video w-full overflow-hidden bg-muted'>
-                      <Image
+                      <img
                         src={post.thumbnailUrl}
                         alt={post.title}
-                        fill
-                        className='object-cover transition-transform group-hover:scale-105'
+                        className='absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105'
                       />
                     </div>
                   )}

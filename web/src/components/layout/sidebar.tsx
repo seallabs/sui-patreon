@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Home, Compass, MessageSquare, Bell, Settings, Loader2 } from "lucide-react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/contexts/user-context";
 import { fetchRecentVisits } from "@/services/visits";
@@ -115,12 +114,10 @@ export function Sidebar() {
                   className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
                 >
                   <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                    <Image
+                    <img
                       src={creator.avatarUrl}
                       alt={creator.displayName}
-                      fill
-                      className="object-cover"
-                      unoptimized
+                      className="h-full w-full object-cover"
                     />
                   </div>
                   <span className="truncate text-sm font-medium text-foreground">

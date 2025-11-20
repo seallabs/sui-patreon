@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { MessageSquare, Heart, Eye, Lock } from "lucide-react";
 import { ActivityEvent, Content } from "@/types";
 import { cn } from "@/lib/utils";
@@ -67,11 +66,10 @@ export function LatestActivity({
               {/* Post Thumbnail */}
               {recentPost.thumbnailUrl && (
                 <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg">
-                  <Image
+                  <img
                     src={recentPost.thumbnailUrl}
                     alt={recentPost.title}
-                    fill
-                    className="object-cover"
+                    className="h-full w-full object-cover"
                   />
                 </div>
               )}
