@@ -165,22 +165,34 @@ export async function decryptContent(
 }
 
 /**
- * Download encrypted data from Walrus using blob ID
+ * Download encrypted data from Walrus using blob ID (patch ID)
  *
- * @param blobId - Walrus blob ID
+ * Uses the HTTP aggregator endpoint instead of SDK for better performance
+ * and to enable blob conversion for decryption.
+ *
+ * @param blobId - Walrus patch ID (from quilt)
  * @returns Promise resolving to encrypted data as Uint8Array
  * @throws Error if blob not found or download fails
  */
 async function downloadFromWalrus(blobId: string): Promise<Uint8Array> {
   try {
-    const files = await client.walrus.getFiles({ ids: [blobId] });
+    // Use aggregator URL for testnet (same as creator dashboard)
+    const aggregatorUrl = 'https://aggregator.walrus-testnet.walrus.space';
+    const url = `${aggregatorUrl}/v1/blobs/by-quilt-patch-id/${blobId}`;
 
-    if (files.length === 0) {
-      throw new Error(`Blob ${blobId} not found in Walrus`);
+    console.log(`📥 Fetching from aggregator: ${url}`);
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Blob ${blobId} not found in Walrus`);
+      }
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const encryptedBytes = await files[0].bytes();
-    return new Uint8Array(encryptedBytes);
+    const arrayBuffer = await response.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to download from Walrus: ${message}`);
@@ -555,9 +567,19 @@ export const DecryptHelpers = {
 
   /**
    * Convert decrypted data to base64 string
+   * Processes in chunks to avoid "Maximum call stack size exceeded" for large data
    */
   toBase64(data: Uint8Array): string {
-    return btoa(String.fromCharCode(...data));
+    // Process in chunks to avoid exceeding maximum argument count
+    const chunkSize = 8192; // 8KB chunks
+    let binary = '';
+
+    for (let i = 0; i < data.length; i += chunkSize) {
+      const chunk = data.subarray(i, Math.min(i + chunkSize, data.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+
+    return btoa(binary);
   },
 
   /**

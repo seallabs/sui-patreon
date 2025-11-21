@@ -163,7 +163,7 @@ export default function CreatePage() {
       await flow.encode();
       const tx = flow.register({
         deletable: true,
-        epochs: 1,
+        epochs: 10,
         owner: userAddress,
       });
       const { digest } = await signAndExecuteTransaction({ transaction: tx });

@@ -3,6 +3,17 @@ import { Content, CreatorProfile } from "@/types";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 /**
+ * Tier information for content access
+ */
+interface AllowedTier {
+  id: string;
+  tierId: string;
+  name: string;
+  description: string;
+  price: string;
+}
+
+/**
  * API response types for content detail endpoint
  */
 interface ContentDetailApiResponse {
@@ -19,6 +30,7 @@ interface ContentDetailApiResponse {
     likeCount: number;
     publishedAt: string;
     createdAt: string;
+    allowedTiers: AllowedTier[];
   };
   creator: {
     id: string;
@@ -94,6 +106,7 @@ export interface ContentDetailData {
   createdAt: Date;
   isPublic: boolean;
   isSubscribed: boolean;
+  allowedTiers: AllowedTier[];
   relatedPosts: Content[];
   popularPosts: Content[];
 }
@@ -168,6 +181,7 @@ export async function fetchContentDetail(
       createdAt: new Date(data.content.publishedAt),
       isPublic: !data.content.isLocked,
       isSubscribed: data.isSubscribed,
+      allowedTiers: data.content.allowedTiers,
       relatedPosts,
       popularPosts,
     };

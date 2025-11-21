@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -32,9 +33,13 @@ export function CreatorSidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-border px-6">
           <Link href="/creator/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-lg font-bold text-primary-foreground">S</span>
-            </div>
+            <Image
+              src="/sui-patreon-logo.png"
+              alt="SuiPatreon"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+            />
             <span className="text-lg font-semibold">SuiPatreon</span>
           </Link>
         </div>
@@ -72,6 +77,60 @@ export function CreatorSidebar() {
             );
           })}
         </nav>
+
+        {/* Footer */}
+        <div className="border-t border-border px-6 py-4 space-y-3">
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs text-muted-foreground">Powered by</p>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://sui.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <Image
+                  src="/sui-logo-transparent.png"
+                  alt="Sui"
+                  width={32}
+                  height={16}
+                  className="h-4 w-auto object-contain brightness-0 invert"
+                />
+              </a>
+              <a
+                href="https://walrus.xyz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <Image
+                  src="/walrus-logo.svg"
+                  alt="Walrus"
+                  width={32}
+                  height={16}
+                  className="h-4 w-auto object-contain brightness-0 invert"
+                />
+              </a>
+              <a
+                href="https://sealvault.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <Image
+                  src="/seal-logo.svg"
+                  alt="Seal"
+                  width={32}
+                  height={16}
+                  className="h-4 w-auto object-contain brightness-0 invert"
+                />
+              </a>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Built by Seal Labs, creators of 7K
+          </p>
+        </div>
       </div>
     </aside>
   );

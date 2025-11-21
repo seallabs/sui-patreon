@@ -217,6 +217,19 @@ export function UserDropdown({ inSidebar = false }: UserDropdownProps) {
           <LogOut className="mr-2 h-4 w-4" />
           Disconnect
         </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <div className="px-2 py-2 text-center">
+          <a
+            href="https://sui.io/zklogin"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Powered by SUI zkLogin
+          </a>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

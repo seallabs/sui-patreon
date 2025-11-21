@@ -111,10 +111,16 @@ export function AccountSettings() {
     reader.readAsDataURL(file);
   };
 
-  // Clear avatar selection (revert to current avatar)
+  // Clear avatar selection (remove avatar preview)
   const handleClearAvatar = () => {
     setValue("avatar", undefined, { shouldValidate: true });
-    setAvatarPreview(profile?.avatarUrl || null);
+    setAvatarPreview(null);
+
+    // Reset the file input
+    const fileInput = document.getElementById("avatar") as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
+    }
   };
 
   // Handle background file selection
@@ -133,10 +139,16 @@ export function AccountSettings() {
     reader.readAsDataURL(file);
   };
 
-  // Clear background selection (revert to current background)
+  // Clear background selection (remove background preview)
   const handleClearBackground = () => {
     setValue("background", undefined, { shouldValidate: true });
-    setBackgroundPreview(profile?.backgroundUrl || null);
+    setBackgroundPreview(null);
+
+    // Reset the file input
+    const fileInput = document.getElementById("background") as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
+    }
   };
 
   // Form submission handler

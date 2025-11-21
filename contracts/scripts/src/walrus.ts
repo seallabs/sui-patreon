@@ -46,7 +46,7 @@ async function createContent(files: WalrusFile[]) {
 
   // Step 2: Register the blob (triggered by user clicking a register button after the encode step)
   const registerTx = flow.register({
-    epochs: 1,
+    epochs: 10,
     owner: keypair.toSuiAddress(),
     deletable: true,
   });

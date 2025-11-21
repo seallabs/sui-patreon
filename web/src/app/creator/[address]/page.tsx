@@ -11,9 +11,10 @@ import { useVisitTracking } from "@/hooks/useVisitTracking";
 import { fetchCreatorProfile, CreatorProfileData } from "@/services/creator";
 import { fetchSubscriptionStatus, SubscriptionStatus } from "@/services/subscription";
 import { use } from "react";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount, useConnectWallet, useWallets } from "@mysten/dapp-kit";
 import { usePurchaseSubscription } from "@/lib/sui/subscription";
 import { toast } from "@/lib/toast";
+import { isEnokiWallet } from "@mysten/enoki";
 
 interface PageProps {
   params: Promise<{ address: string }>;
@@ -24,6 +25,8 @@ export default function CreatorProfilePage({ params }: PageProps) {
   const { trackCreatorVisit } = useVisitTracking();
   const currentAccount = useCurrentAccount();
   const { purchaseSubscription, isLoading: isSubscribing } = usePurchaseSubscription();
+  const { mutateAsync: connectWallet } = useConnectWallet();
+  const wallets = useWallets();
 
   const [profileData, setProfileData] = useState<CreatorProfileData | null>(
     null
@@ -32,6 +35,7 @@ export default function CreatorProfilePage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
 
   // Fetch profile data
   const loadProfile = useCallback(async () => {
@@ -94,13 +98,41 @@ export default function CreatorProfilePage({ params }: PageProps) {
     }
   }, [address, trackCreatorVisit]);
 
+  // Handle wallet connection (triggered when "Connect Wallet" is clicked)
+  const handleConnectWallet = useCallback(async () => {
+    const googleWallet = wallets.find(
+      (wallet) => isEnokiWallet(wallet) && wallet.provider === 'google'
+    );
+
+    if (!googleWallet) {
+      toast.error("Google wallet not found", {
+        description: "Please ensure Google OAuth is configured",
+      });
+      return;
+    }
+
+    setIsConnectingWallet(true);
+    try {
+      await connectWallet({ wallet: googleWallet });
+      toast.success("Wallet connected!", {
+        description: "You can now subscribe to creators",
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet';
+      toast.error("Connection failed", {
+        description: errorMessage,
+      });
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  }, [wallets, connectWallet]);
+
   // Handle subscription purchase
   const handleSubscribe = useCallback(
     async (tierId: string, tierName: string, price: number) => {
       if (!currentAccount?.address) {
-        toast.error("Wallet not connected", {
-          description: "Please connect your wallet to subscribe",
-        });
+        // Trigger wallet connection instead of just showing error
+        await handleConnectWallet();
         return;
       }
 
@@ -143,7 +175,7 @@ export default function CreatorProfilePage({ params }: PageProps) {
         await loadSubscriptionStatus();
       }
     },
-    [address, currentAccount, purchaseSubscription, loadSubscriptionStatus]
+    [address, currentAccount, purchaseSubscription, loadSubscriptionStatus, handleConnectWallet]
   );
 
   // Helper function to get tier button state
@@ -380,12 +412,18 @@ export default function CreatorProfilePage({ params }: PageProps) {
                           disabled={
                             isSubscribing ||
                             buttonState.disabled ||
-                            isLoadingSubscription
+                            isLoadingSubscription ||
+                            isConnectingWallet
                           }
                         >
-                          {isSubscribing ? (
+                          {isConnectingWallet ? (
                             <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Connecting Wallet...
+                            </>
+                          ) : isSubscribing ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Processing...
                             </>
                           ) : isCurrentTier ? (

@@ -98,38 +98,88 @@ export function Sidebar() {
         </nav>
 
         {/* Recently Visited Section */}
-        {isLoadingVisits ? (
-          <div className="flex items-center justify-center px-3 pb-4">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : recentlyVisited.length > 0 ? (
-          <div className="px-3 pb-4">
-            <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Recently Visited
-            </h3>
-            <div className="space-y-0.5">
-              {recentlyVisited.map((creator) => (
-                <Link
-                  key={creator.id}
-                  href={`/creator/${creator.address}`}
-                  onClick={() => handleCreatorClick(creator.address)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-                >
-                  <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                    <img
-                      src={creator.avatarUrl}
-                      alt={creator.displayName}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <span className="truncate text-sm font-medium text-foreground">
-                    {creator.displayName}
-                  </span>
-                </Link>
-              ))}
+        <div className="flex-1">
+          {isLoadingVisits ? (
+            <div className="flex items-center justify-center px-3 pb-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : recentlyVisited.length > 0 ? (
+            <div className="px-3 pb-4">
+              <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Recently Visited
+              </h3>
+              <div className="space-y-0.5">
+                {recentlyVisited.map((creator) => (
+                  <Link
+                    key={creator.id}
+                    href={`/creator/${creator.address}`}
+                    onClick={() => handleCreatorClick(creator.address)}
+                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
+                  >
+                    <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
+                      <img
+                        src={creator.avatarUrl}
+                        alt={creator.displayName}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <span className="truncate text-sm font-medium text-foreground">
+                      {creator.displayName}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border px-6 py-4 space-y-3">
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs text-muted-foreground">Powered by</p>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://sui.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <img
+                  src="/sui-logo-transparent.png"
+                  alt="Sui"
+                  className="h-4 object-contain brightness-0 invert"
+                />
+              </a>
+              <a
+                href="https://walrus.xyz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <img
+                  src="/walrus-logo.svg"
+                  alt="Walrus"
+                  className="h-4 object-contain brightness-0 invert"
+                />
+              </a>
+              <a
+                href="https://sealvault.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <img
+                  src="/seal-logo.svg"
+                  alt="Seal"
+                  className="h-4 object-contain brightness-0 invert"
+                />
+              </a>
             </div>
           </div>
-        ) : null}
+          <p className="text-xs text-muted-foreground text-center">
+            Built by Seal Labs, creators of 7K
+          </p>
+        </div>
       </div>
     </aside>
   );

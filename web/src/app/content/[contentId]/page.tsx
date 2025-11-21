@@ -187,10 +187,13 @@ export default function ContentDetailPage({ params }: PageProps) {
     );
   }, [subscriptions, contentData?.creator.address]);
   console.log(subscriptions, subscription);
+
+  // Only decrypt if content is exclusive AND user has subscription
+  const shouldDecrypt = !contentData?.isPublic && contentData?.isSubscribed;
   const { data: decryptContent, isLoading: decrypting } = useDecryptContent(
-    contentData?.contentId,
-    subscription?.subscriptionId,
-    contentData?.exclusiveId
+    shouldDecrypt ? contentData?.contentId : undefined,
+    shouldDecrypt ? subscription?.subscriptionId : undefined,
+    shouldDecrypt ? contentData?.exclusiveId : undefined
   );
   const decryped = useMemo(
     () =>
@@ -201,23 +204,43 @@ export default function ContentDetailPage({ params }: PageProps) {
   );
 
   // Determine which media to show
-  const shouldShowExclusive =
-    contentData?.isPublic || contentData?.isSubscribed;
+  // For public content: show preview directly (no decryption needed)
+  // For exclusive content with subscription: show decrypted exclusive content
+  // For exclusive content without subscription: show locked state
+  const shouldShowContent = contentData?.isPublic || contentData?.isSubscribed;
   const mediaUrl = useMemo(() => {
-    return shouldShowExclusive
-      ? decryped
-      : contentData?.previewId
+    // Public content - show preview directly
+    if (contentData?.isPublic) {
+      return contentData?.previewId
         ? getWalrusUrl(contentData.previewId)
         : null;
-  }, [shouldShowExclusive, decryped, contentData?.previewId]);
+    }
+
+    // Exclusive content with subscription - show decrypted content
+    if (contentData?.isSubscribed && decryped) {
+      return decryped;
+    }
+
+    // Exclusive content without subscription - show preview
+    return contentData?.previewId
+      ? getWalrusUrl(contentData.previewId)
+      : null;
+  }, [contentData?.isPublic, contentData?.isSubscribed, decryped, contentData?.previewId]);
   useEffect(() => {
     console.log({ mediaUrl, type: contentData?.contentType });
+    // Reset loading state when mediaUrl changes
+    if (mediaUrl) {
+      setMediaLoading(true);
+    }
   }, [mediaUrl, contentData?.contentType]);
 
   const [isLiked, setIsLiked] = useState(false);
   const [showExtendDialog, setShowExtendDialog] = useState(false);
-  const [epochs, setEpochs] = useState('1');
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successEpochs, setSuccessEpochs] = useState(0);
+  const [epochs, setEpochs] = useState('10');
   const [isExtending, setIsExtending] = useState(false);
+  const [mediaLoading, setMediaLoading] = useState(true);
 
   // Handle like action
   const handleLike = () => {
@@ -266,6 +289,13 @@ export default function ContentDetailPage({ params }: PageProps) {
       return;
     }
 
+    if (!contentData) {
+      toast.error('Content not loaded', {
+        description: 'Please wait for content to load',
+      });
+      return;
+    }
+
     const epochsNum = parseInt(epochs);
     if (isNaN(epochsNum) || epochsNum < 1) {
       toast.error('Invalid epochs', {
@@ -291,18 +321,18 @@ export default function ContentDetailPage({ params }: PageProps) {
       }
 
       // Build the extend blob call using the patreon helper
-      patreon.extendBlob(tx, contentId, coins.data[0].coinObjectId, epochsNum);
+      // Use contentData.contentId (Sui object ID) instead of contentId (database UUID)
+      patreon.extendBlob(tx, contentData.contentId, coins.data[0].coinObjectId, epochsNum);
 
       signAndExecute(
         { transaction: tx },
         {
           onSuccess: (result) => {
             console.log('Extend blob success:', result);
-            toast.success('Blob storage extended!', {
-              description: `Extended for ${epochsNum} epoch${epochsNum > 1 ? 's' : ''}`,
-            });
+            setSuccessEpochs(epochsNum);
             setShowExtendDialog(false);
-            setEpochs('1');
+            setShowSuccessDialog(true);
+            setEpochs('10');
           },
           onError: (error) => {
             console.error('Extend blob error:', error);
@@ -463,8 +493,9 @@ export default function ContentDetailPage({ params }: PageProps) {
         {/* Content Section */}
         <section className='mb-12'>
           {/* Media Display */}
-          {shouldShowExclusive ? (
-            decrypting ? (
+          {shouldShowContent ? (
+            // Show decrypting loader only for exclusive content with subscription
+            shouldDecrypt && decrypting ? (
               <div className='mb-6 flex aspect-video items-center justify-center rounded-lg border border-border bg-card'>
                 <div className='flex flex-col items-center gap-3 text-muted-foreground'>
                   <Loader2 className='h-6 w-6 animate-spin' />
@@ -475,11 +506,38 @@ export default function ContentDetailPage({ params }: PageProps) {
               </div>
             ) : (
               <div className='mb-6 overflow-hidden rounded-lg border border-border bg-card'>
+                {/* Loading placeholder for media from Walrus */}
+                {mediaLoading && (contentType === 'video' || contentType === 'image') && (
+                  <div className='flex aspect-video items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10'>
+                    <div className='flex flex-col items-center gap-6'>
+                      {/* Walrus running GIF */}
+                      <img
+                        src='/wal-running.gif'
+                        alt='Loading from Walrus'
+                        className='h-40 w-40 object-contain md:h-48 md:w-48'
+                      />
+                      {/* Loading message */}
+                      <div className='flex flex-col items-center gap-2'>
+                        <p className='text-base font-medium text-muted-foreground md:text-lg'>
+                          Loading from Walrus...
+                        </p>
+                        <div className='flex items-center gap-2 text-sm text-muted-foreground/80'>
+                          <span>Powered by</span>
+                          <span className='font-semibold text-primary'>Walrus</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {mediaUrl && contentType === 'video' && (
                   <video
                     controls
                     className='aspect-video w-full'
                     src={mediaUrl}
+                    onLoadedData={() => setMediaLoading(false)}
+                    onError={() => setMediaLoading(false)}
+                    style={{ display: mediaLoading ? 'none' : 'block' }}
                   >
                     Your browser does not support the video tag.
                   </video>
@@ -487,7 +545,13 @@ export default function ContentDetailPage({ params }: PageProps) {
 
                 {mediaUrl && contentType === 'audio' && (
                   <div className='p-8'>
-                    <audio controls className='w-full' src={mediaUrl}>
+                    <audio
+                      controls
+                      className='w-full'
+                      src={mediaUrl}
+                      onLoadedData={() => setMediaLoading(false)}
+                      onError={() => setMediaLoading(false)}
+                    >
                       Your browser does not support the audio tag.
                     </audio>
                   </div>
@@ -499,6 +563,9 @@ export default function ContentDetailPage({ params }: PageProps) {
                       src={mediaUrl}
                       alt={title}
                       className='object-contain'
+                      onLoad={() => setMediaLoading(false)}
+                      onError={() => setMediaLoading(false)}
+                      style={{ display: mediaLoading ? 'none' : 'block' }}
                     />
                   </div>
                 )}
@@ -514,18 +581,76 @@ export default function ContentDetailPage({ params }: PageProps) {
             )
           ) : (
             // Locked State
-            <div className='mb-6 flex aspect-video items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50'>
-              <div className='text-center'>
-                <Lock className='mx-auto mb-4 h-16 w-16 text-muted-foreground' />
-                <h3 className='mb-2 text-xl font-semibold'>
-                  Exclusive Content
-                </h3>
-                <p className='mb-4 text-muted-foreground'>
-                  Subscribe to {creator.displayName} to unlock this content
-                </p>
-                <Button onClick={handleCreatorClick}>
-                  View Subscription Tiers
-                </Button>
+            <div className='mb-6 overflow-hidden rounded-lg border-2 border-dashed border-border bg-gradient-to-br from-muted/30 to-muted/60'>
+              <div className='flex min-h-[400px] flex-col items-center gap-8 p-8 md:flex-row md:gap-12 md:p-12'>
+                {/* Left Side - Seal Branding */}
+                <div className='flex flex-1 flex-col items-center justify-center gap-4'>
+                  <div className='relative'>
+                    {/* Seal Logo with Glow Effect */}
+                    <div className='absolute inset-0 animate-pulse rounded-full bg-primary/20 blur-2xl' />
+                    <img
+                      src='/seal.avif'
+                      alt='Seal'
+                      className='relative h-32 w-32 drop-shadow-2xl md:h-40 md:w-40'
+                    />
+                  </div>
+                  <div className='text-center'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Secured by
+                    </p>
+                    <p className='text-2xl font-bold text-foreground'>
+                      Seal
+                    </p>
+                    <p className='mt-1 text-xs text-muted-foreground'>
+                      Decentralized Encryption
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Side - Content Info */}
+                <div className='flex flex-1 flex-col items-center text-center md:items-start md:text-left'>
+                  <Lock className='mb-4 h-12 w-12 text-muted-foreground' />
+
+                  <h3 className='mb-2 text-2xl font-bold md:text-3xl'>
+                    Exclusive Content
+                  </h3>
+
+                  <p className='mb-6 text-muted-foreground'>
+                    Subscribe to {creator.displayName} to unlock this encrypted content
+                  </p>
+
+                  {/* Display Required Tiers */}
+                  {contentData.allowedTiers && contentData.allowedTiers.length > 0 && (
+                    <div className='mb-6 w-full'>
+                      <p className='mb-3 text-sm font-medium text-muted-foreground'>
+                        Available with these tiers:
+                      </p>
+                      <div className='flex flex-wrap gap-2 md:justify-start justify-center'>
+                        {contentData.allowedTiers.map((tier) => (
+                          <div
+                            key={tier.id}
+                            className='flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 shadow-sm transition-all hover:border-primary/50 hover:shadow-md'
+                          >
+                            <span className='font-semibold text-primary'>
+                              {tier.name}
+                            </span>
+                            <span className='text-sm text-muted-foreground'>
+                              ${tier.price}/month
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleCreatorClick}
+                    size='lg'
+                    className='w-full md:w-auto'
+                  >
+                    View Subscription Tiers
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -600,6 +725,60 @@ export default function ContentDetailPage({ params }: PageProps) {
               ) : (
                 'Confirm'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog - Fun Walrus Thank You */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className='max-w-lg'>
+          <DialogHeader className='text-center'>
+            <DialogTitle className='text-center text-2xl font-bold md:text-3xl'>
+              🎉 Thanks for Your Support! 🎉
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className='flex flex-col items-center gap-6 py-6'>
+            {/* Walrus GIF */}
+            <div className='relative overflow-hidden rounded-2xl border-4 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-2 shadow-2xl'>
+              <img
+                src='/sui-wal-thank.gif'
+                alt='Walrus Thank You'
+                className='h-64 w-64 rounded-xl object-cover'
+              />
+              <div className='absolute inset-0 animate-pulse rounded-2xl bg-primary/5' />
+            </div>
+
+            {/* Success Message */}
+            <div className='space-y-3 text-center'>
+              <p className='text-lg font-semibold text-foreground'>
+                You've extended this content for{' '}
+                <span className='text-primary'>{successEpochs} epoch{successEpochs > 1 ? 's' : ''}</span>!
+              </p>
+              <p className='text-sm text-muted-foreground'>
+                Your contribution helps keep amazing content available on the decentralized web.
+              </p>
+            </div>
+
+            {/* Walrus Branding */}
+            <div className='flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-6 py-3'>
+              <span className='text-sm font-medium text-muted-foreground'>
+                Powered by
+              </span>
+              <span className='text-xl font-bold text-primary'>
+                Walrus
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter className='sm:justify-center'>
+            <Button
+              onClick={() => setShowSuccessDialog(false)}
+              size='lg'
+              className='w-full sm:w-auto'
+            >
+              Awesome! 🚀
             </Button>
           </DialogFooter>
         </DialogContent>
