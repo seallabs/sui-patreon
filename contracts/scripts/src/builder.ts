@@ -42,19 +42,62 @@ function displayEvents(result: any): void {
 }
 
 /**
+ * Topic enumeration matching the Move contract
+ */
+export enum ProfileTopic {
+  TRAVEL = 0,
+  MOVIES_SHOWS = 1,
+  MOTORSPORTS = 2,
+  PODCASTS_SHOWS = 3,
+  LIFESTYLE = 4,
+  VISUAL_ARTS = 5,
+  SPORTS = 6,
+  ENTERTAINMENT = 7,
+  POP_CULTURE = 8,
+  COMEDY = 9,
+}
+
+/**
+ * Helper to convert topic enum to readable string
+ */
+function topicToString(topic: ProfileTopic): string {
+  const topicNames: Record<ProfileTopic, string> = {
+    [ProfileTopic.TRAVEL]: 'Travel',
+    [ProfileTopic.MOVIES_SHOWS]: 'Movies & Shows',
+    [ProfileTopic.MOTORSPORTS]: 'Motorsports',
+    [ProfileTopic.PODCASTS_SHOWS]: 'Podcasts & Shows',
+    [ProfileTopic.LIFESTYLE]: 'Lifestyle',
+    [ProfileTopic.VISUAL_ARTS]: 'Visual Arts',
+    [ProfileTopic.SPORTS]: 'Sports',
+    [ProfileTopic.ENTERTAINMENT]: 'Entertainment',
+    [ProfileTopic.POP_CULTURE]: 'Pop Culture',
+    [ProfileTopic.COMEDY]: 'Comedy',
+  };
+  return topicNames[topic];
+}
+
+/**
  * Create a creator profile with explicit fields
  *
  * @param name - Creator name (e.g., "alice.sui")
  * @param bio - Creator bio/description
  * @param avatarUrl - Avatar image URL
  * @param backgroundUrl - Background/banner image URL
+ * @param topic - Profile topic category (0-9)
  */
-export async function createProfile(name: string, bio: string, avatarUrl: string, backgroundUrl: string) {
+export async function createProfile(
+  name: string,
+  bio: string,
+  avatarUrl: string,
+  backgroundUrl: string,
+  topic: ProfileTopic
+) {
   console.log('\n🎭 Creating Profile...');
   console.log(`   Name: ${name}`);
   console.log(`   Bio: ${bio}`);
   console.log(`   Avatar: ${avatarUrl}`);
   console.log(`   Background: ${backgroundUrl}`);
+  console.log(`   Topic: ${topicToString(topic)}`);
 
   try {
     const tx = new Transaction();
@@ -66,6 +109,7 @@ export async function createProfile(name: string, bio: string, avatarUrl: string
         tx.pure.string(bio),
         tx.pure.string(avatarUrl),
         tx.pure.string(backgroundUrl),
+        tx.pure.u8(topic),
         tx.object(SUI_CLOCK_OBJECT_ID),
       ],
     });

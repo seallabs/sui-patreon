@@ -21,6 +21,7 @@ model Creator {
   avatarUrl     String? // Optional avatar image URL
   backgroundUrl String? // Optional background/banner image URL
   category      String   @default("Creator") // Creator category (e.g., "Podcasts & shows", "Music")
+  topic         Int      @default(0) // Topic category: 0-9 (0=Travel, 1=Movies & shows, 2=Motorsports, 3=Podcasts & shows, 4=Lifestyle, 5=Visual arts, 6=Sports, 7=Entertainment, 8=Pop culture, 9=Comedy)
   isVerified    Boolean  @default(false) // Verified creator badge
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -29,6 +30,7 @@ model Creator {
   @@index([address])
   @@index([name])
   @@index([category])
+  @@index([topic])
   @@index([createdAt])
 }
 

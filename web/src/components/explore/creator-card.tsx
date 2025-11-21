@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CheckCircle2, Users } from "lucide-react";
 import { ExploreCreator } from "@/types";
 import { formatNumber } from "@/lib/utils";
+import { getTopicDisplayName } from "@/lib/topics";
 
 interface ExploreCreatorCardProps {
   creator: ExploreCreator;
@@ -75,7 +76,7 @@ export function ExploreCreatorCard({ creator }: ExploreCreatorCardProps) {
           {creator.bio}
         </p>
 
-        {/* Stats and Category */}
+        {/* Stats and Topic */}
         <div className="flex items-center justify-between">
           {/* Follower count */}
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -83,9 +84,9 @@ export function ExploreCreatorCard({ creator }: ExploreCreatorCardProps) {
             <span>{formatNumber(creator.followerCount)}</span>
           </div>
 
-          {/* Category badge */}
+          {/* Topic badge */}
           <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            {creator.category}
+            {getTopicDisplayName(creator.topic)}
           </span>
         </div>
       </div>

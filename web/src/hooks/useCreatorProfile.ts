@@ -13,6 +13,7 @@ interface CreatorProfile {
   bio: string;
   avatarUrl: string;
   backgroundUrl?: string;
+  topic?: number;
   createdAt: string;
 }
 
@@ -77,6 +78,7 @@ export function useCreatorProfile() {
               bio: profileData.value?.fields?.bio || '',
               avatarUrl: profileData.value?.fields?.avatar_url || '',
               backgroundUrl: profileData.value?.fields?.background_url || '',
+              topic: profileData.value?.fields?.topic ?? 0,
               createdAt: profileData.value?.fields?.created_at || '0',
             };
 

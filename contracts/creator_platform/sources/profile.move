@@ -5,10 +5,32 @@ use sui::clock::Clock;
 use sui::event;
 use sui::table::{Self, Table};
 
+// Topic constants
+#[allow(unused_const)]
+const TOPIC_TRAVEL: u8 = 0;
+#[allow(unused_const)]
+const TOPIC_MOVIES_SHOWS: u8 = 1;
+#[allow(unused_const)]
+const TOPIC_MOTORSPORTS: u8 = 2;
+#[allow(unused_const)]
+const TOPIC_PODCASTS_SHOWS: u8 = 3;
+#[allow(unused_const)]
+const TOPIC_LIFESTYLE: u8 = 4;
+#[allow(unused_const)]
+const TOPIC_VISUAL_ARTS: u8 = 5;
+#[allow(unused_const)]
+const TOPIC_SPORTS: u8 = 6;
+#[allow(unused_const)]
+const TOPIC_ENTERTAINMENT: u8 = 7;
+#[allow(unused_const)]
+const TOPIC_POP_CULTURE: u8 = 8;
+const TOPIC_COMEDY: u8 = 9;
+
 // Error codes
 const EProfileAlreadyExists: u64 = 0;
 const EProfileNotFound: u64 = 1;
 const EInvalidName: u64 = 2;
+const EInvalidTopic: u64 = 3;
 
 // ===== Events =====
 
@@ -20,6 +42,7 @@ public struct ProfileCreated has copy, drop {
     bio: String,
     avatar_url: String,
     background_url: String,
+    topic: u8,
     timestamp: u64,
 }
 
@@ -31,6 +54,7 @@ public struct ProfileUpdated has copy, drop {
     bio: String,
     avatar_url: String,
     background_url: String,
+    topic: u8,
     timestamp: u64,
 }
 
@@ -47,6 +71,7 @@ public struct CreatorProfile has store {
     bio: String,
     avatar_url: String,
     background_url: String,
+    topic: u8,
     created_at: u64,
 }
 
@@ -66,12 +91,14 @@ public fun create_profile(
     bio: String,
     avatar_url: String,
     background_url: String,
+    topic: u8,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
     let creator = ctx.sender();
     assert!(!registry.profiles.contains(creator), EProfileAlreadyExists);
     assert!(name.length() > 0, EInvalidName);
+    assert!(topic <= TOPIC_COMEDY, EInvalidTopic);
 
     let created_at = clock.timestamp_ms();
     let profile = CreatorProfile {
@@ -79,6 +106,7 @@ public fun create_profile(
         bio,
         avatar_url,
         background_url,
+        topic,
         created_at,
     };
 
@@ -90,6 +118,7 @@ public fun create_profile(
         bio: profile.bio,
         avatar_url: profile.avatar_url,
         background_url: profile.background_url,
+        topic: profile.topic,
         timestamp: created_at,
     });
 
@@ -104,18 +133,21 @@ public fun update_profile(
     bio: String,
     avatar_url: String,
     background_url: String,
+    topic: u8,
     clock: &Clock,
     ctx: &TxContext,
 ) {
     let creator = ctx.sender();
     assert!(registry.profiles.contains(creator), EProfileNotFound);
     assert!(name.length() > 0, EInvalidName);
+    assert!(topic <= TOPIC_COMEDY, EInvalidTopic);
 
     let profile = registry.profiles.borrow_mut(creator);
     profile.name = name;
     profile.bio = bio;
     profile.avatar_url = avatar_url;
     profile.background_url = background_url;
+    profile.topic = topic;
 
     // Emit update event
     event::emit(ProfileUpdated {
@@ -125,6 +157,7 @@ public fun update_profile(
         bio: profile.bio,
         avatar_url: profile.avatar_url,
         background_url: profile.background_url,
+        topic: profile.topic,
         timestamp: clock.timestamp_ms(),
     });
 }
@@ -159,4 +192,10 @@ public fun created_at(registry: &ProfileRegistry, creator: address): u64 {
 public fun background_url(registry: &ProfileRegistry, creator: address): String {
     assert!(registry.profiles.contains(creator), EProfileNotFound);
     registry.profiles.borrow(creator).background_url
+}
+
+/// Get profile topic
+public fun topic(registry: &ProfileRegistry, creator: address): u8 {
+    assert!(registry.profiles.contains(creator), EProfileNotFound);
+    registry.profiles.borrow(creator).topic
 }

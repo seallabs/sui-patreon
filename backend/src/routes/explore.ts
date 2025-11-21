@@ -7,7 +7,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
-import { validateLimit } from '../lib/validation';
+import { validateLimit, parseTopicParam, getTopicName, TOPIC_NAMES } from '../lib/validation';
 import { getFakedSubscriberCount } from '../lib/random-stats';
 
 const router = Router();
@@ -36,6 +36,8 @@ interface CreatorResponse {
   avatarUrl: string | null;
   backgroundUrl: string | null;
   category: string;
+  topic: number;
+  topicName: string;
   followerCount: number;
   isVerified: boolean;
   createdAt: Date;
@@ -136,6 +138,39 @@ router.get('/categories', async (_req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/explore/topics
+ *
+ * Get all available topics with creator counts
+ *
+ * @returns Array of topics with metadata
+ */
+router.get('/topics', async (_req: Request, res: Response) => {
+  try {
+    // Get creator counts for each topic
+    const topicsWithCounts = await Promise.all(
+      Object.entries(TOPIC_NAMES).map(async ([topicId, topicName]) => {
+        const count = await prisma.creator.count({
+          where: { topic: parseInt(topicId, 10) },
+        });
+
+        return {
+          id: parseInt(topicId, 10),
+          name: topicName,
+          creatorCount: count,
+        };
+      })
+    );
+
+    res.json(jsonResponse({ topics: topicsWithCounts }));
+  } catch (error) {
+    console.error('Error fetching topics:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+    });
+  }
+});
+
+/**
  * GET /api/explore/creators/new
  *
  * Get recently created creators (new on platform)
@@ -197,10 +232,11 @@ router.get('/creators/new', async (req: Request, res: Response) => {
 /**
  * GET /api/explore/creators
  *
- * Get creators filtered by category
+ * Get creators filtered by category and/or topic
  *
  * Query params:
  * - category: string (optional, filter by category slug)
+ * - topic: number (optional, filter by topic 0-9)
  * - limit: number (default: 12, max: 50)
  * - offset: number (default: 0)
  * - sort: "newest" | "popular" (default: "popular")
@@ -214,6 +250,7 @@ router.get('/creators', async (req: Request, res: Response) => {
     const limit = validateLimit(req.query.limit as string, 12, 50);
     const offset = parseInt((req.query.offset as string) || '0', 10);
     const sortBy = (sort as string) || 'popular';
+    const topic = parseTopicParam(req.query.topic as string);
 
     // Validate sort parameter
     if (sortBy !== 'newest' && sortBy !== 'popular') {
@@ -241,6 +278,11 @@ router.get('/creators', async (req: Request, res: Response) => {
           error: 'Invalid category',
         });
       }
+    }
+
+    // Filter by topic if provided and valid
+    if (topic !== null) {
+      where.topic = topic;
     }
 
     // Determine sort order
@@ -338,6 +380,8 @@ function formatCreatorResponse(creator: any, followerCount: number): CreatorResp
     avatarUrl: creator.avatarUrl || null,
     backgroundUrl: creator.backgroundUrl || null,
     category: creator.category || 'Creator',
+    topic: creator.topic || 0,
+    topicName: getTopicName(creator.topic || 0),
     // TODO: Replace with actual follower count once we have enough real users
     followerCount: getFakedSubscriberCount(followerCount),
     isVerified: creator.isVerified || false,

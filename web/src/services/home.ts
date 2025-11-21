@@ -1,4 +1,6 @@
 import { CreatorProfile } from "@/types";
+import { Topic } from "@/lib/topics";
+import { generateTopicFromId } from "@/lib/topic-utils";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -10,6 +12,7 @@ export interface HomeCreatorResponse {
   avatarUrl: string | null;
   backgroundUrl: string | null;
   category: string;
+  topic?: number; // Topic ID (0-9) when backend supports it
   followerCount: number;
   isVerified: boolean;
   contentCount: number;
@@ -100,6 +103,8 @@ function mapToCreatorProfile(creator: HomeCreatorResponse): CreatorProfile {
     avatarUrl,
     backgroundUrl: creator.backgroundUrl ?? undefined,
     category: creator.category,
+    // Use topic from API if available, otherwise generate from ID for consistency
+    topic: creator.topic ?? generateTopicFromId(creator.id),
     followerCount: creator.followerCount,
     isVerified: creator.isVerified,
     createdAt: new Date(), // Use current date as fallback since not in API yet

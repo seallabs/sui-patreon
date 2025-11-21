@@ -10,7 +10,8 @@ export interface CreatorProfile {
   bio: string;
   avatarUrl: string;
   backgroundUrl?: string; // Background banner image
-  category: string;
+  category: string; // Legacy field, will be replaced by topic
+  topic?: number; // Topic ID (0-9), see lib/topics.ts - optional for backwards compatibility
   followerCount: number;
   isVerified: boolean;
   createdAt: Date;
@@ -164,7 +165,8 @@ export interface ExploreCreator {
   bio: string;
   avatarUrl: string | null;
   backgroundUrl?: string | null; // Background banner image
-  category: string;
+  category: string; // Legacy field, will be replaced by topic
+  topic?: number; // Topic ID (0-9), see lib/topics.ts
   followerCount: number;
   isVerified: boolean;
   createdAt: Date;

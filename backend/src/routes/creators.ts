@@ -7,7 +7,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { jsonResponse } from '../lib/json-serializer';
-import { validateLimit, sanitizeSearchQuery } from '../lib/validation';
+import { validateLimit, sanitizeSearchQuery, parseTopicParam, getTopicName } from '../lib/validation';
 import { toStandardUnit } from '../config/currency';
 import { getAllowedTiersForContents } from '../lib/content-tiers';
 import { getContentStats, getFakedSubscriberCount, getFakedTierSubscriberCount } from '../lib/random-stats';
@@ -93,28 +93,36 @@ router.get('/:address', async (req: Request, res: Response) => {
 /**
  * GET /api/creators
  *
- * Search creators by name
+ * Search creators by name and/or filter by topic
  *
  * Query params:
  * - query (string): Search term for creator name (case-insensitive)
+ * - topic (number): Filter by topic (0-9)
  * - limit (number): Max results (default: 20, max: 100)
  *
- * @returns Array of creators with tiers
+ * @returns Array of creators with tiers and topic information
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { query } = req.query;
     const limit = validateLimit(req.query.limit as string);
+    const topic = parseTopicParam(req.query.topic as string);
 
     // Build where clause
-    const where = query
-      ? {
-        name: {
-          contains: sanitizeSearchQuery(query as string),
-          mode: 'insensitive' as const,
-        },
-      }
-      : {};
+    const where: any = {};
+
+    // Add name search if provided
+    if (query) {
+      where.name = {
+        contains: sanitizeSearchQuery(query as string),
+        mode: 'insensitive' as const,
+      };
+    }
+
+    // Add topic filter if provided and valid
+    if (topic !== null) {
+      where.topic = topic;
+    }
 
     const creators = await prisma.creator.findMany({
       where,
@@ -132,7 +140,11 @@ router.get('/', async (req: Request, res: Response) => {
           },
           orderBy: { price: 'asc' },
         });
-        return { ...creator, tiers };
+        return {
+          ...creator,
+          topicName: getTopicName(creator.topic),
+          tiers
+        };
       })
     );
 
@@ -400,6 +412,8 @@ router.get('/:address/profile', async (req: Request, res: Response) => {
       followerCount: getFakedSubscriberCount(actualFollowerCount),
       joinedDate: creator.createdAt,
       category: creator.category,
+      topic: creator.topic,
+      topicName: getTopicName(creator.topic),
       isVerified: creator.isVerified,
       ...(suinsName && { suinsName }),
     };

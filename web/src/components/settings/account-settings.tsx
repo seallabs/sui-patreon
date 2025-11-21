@@ -37,6 +37,7 @@ import {
   type UpdateProfileFormData,
 } from "@/lib/schemas/update-profile-schema";
 import { PACKAGE_ID, PROFILE_REGISTRY } from "@/lib/sui/constants";
+import { getAllTopics } from "@/lib/topics";
 
 export function AccountSettings() {
   const { profile, hasProfile, isLoading: isProfileLoading, refetch } = useCreatorProfile();
@@ -71,6 +72,7 @@ export function AccountSettings() {
       reset({
         name: profile.name,
         bio: profile.bio,
+        topic: profile.topic,
       });
       setAvatarPreview(profile.avatarUrl);
       setBackgroundPreview(profile.backgroundUrl || null);
@@ -208,6 +210,7 @@ export function AccountSettings() {
               tx.pure.string(data.bio || ""),
               tx.pure.string(avatarUrl),
               tx.pure.string(backgroundUrl),
+              tx.pure.u8(data.topic ?? profile.topic ?? 0),
               tx.object(SUI_CLOCK_OBJECT_ID),
             ],
           });
@@ -225,6 +228,7 @@ export function AccountSettings() {
               reset({
                 name: data.name,
                 bio: data.bio,
+                topic: data.topic,
               });
               setValue("avatar", undefined);
               setValue("background", undefined);
@@ -247,6 +251,7 @@ export function AccountSettings() {
       reset({
         name: profile.name,
         bio: profile.bio,
+        topic: profile.topic,
       });
       setValue("avatar", undefined);
       setValue("background", undefined);
@@ -320,6 +325,27 @@ export function AccountSettings() {
           />
           {errors.bio && (
             <p className="text-sm text-red-500">{errors.bio.message}</p>
+          )}
+        </div>
+
+        {/* Topic Selector */}
+        <div className="space-y-2">
+          <Label htmlFor="topic">Topic</Label>
+          <select
+            id="topic"
+            value={watch("topic") ?? profile?.topic ?? 0}
+            onChange={(e) => setValue("topic", parseInt(e.target.value), { shouldValidate: true, shouldDirty: true })}
+            disabled={isLoading}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {getAllTopics().map((topic) => (
+              <option key={topic.id} value={topic.id}>
+                {topic.displayName}
+              </option>
+            ))}
+          </select>
+          {errors.topic && (
+            <p className="text-sm text-red-500">{errors.topic.message}</p>
           )}
         </div>
 

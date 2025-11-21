@@ -1,4 +1,5 @@
 import { ExploreCategory, ExploreCreator } from "@/types";
+import { generateTopicFromId } from "@/lib/topic-utils";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
@@ -221,11 +222,20 @@ export async function fetchNewCreators(
     }
 
     const data = await response.json();
-    return data.creators || [];
+    // Add topic to creators if not present
+    const creatorsWithTopics = (data.creators || []).map((creator: any) => ({
+      ...creator,
+      topic: creator.topic ?? generateTopicFromId(creator.id),
+    }));
+    return creatorsWithTopics;
   } catch (error) {
     console.error("Error fetching new creators:", error);
     // Fallback to mock data on error
-    return MOCK_CREATORS.slice(offset, offset + limit);
+    const mockWithTopics = MOCK_CREATORS.slice(offset, offset + limit).map(creator => ({
+      ...creator,
+      topic: generateTopicFromId(creator.id),
+    }));
+    return mockWithTopics;
   }
 }
 
@@ -272,13 +282,21 @@ export async function fetchCreatorsByCategory(
     }
 
     const data = await response.json();
-    return data.creators || [];
+    // Add topic to creators if not present
+    const creatorsWithTopics = (data.creators || []).map((creator: any) => ({
+      ...creator,
+      topic: creator.topic ?? generateTopicFromId(creator.id),
+    }));
+    return creatorsWithTopics;
   } catch (error) {
     console.error("Error fetching creators by category:", error);
     // Fallback to mock data on error
     const filtered = MOCK_CREATORS.filter(
       (c) => c.category.toLowerCase() === category.toLowerCase()
-    );
+    ).map(creator => ({
+      ...creator,
+      topic: generateTopicFromId(creator.id),
+    }));
     return filtered.slice(offset, offset + limit);
   }
 }

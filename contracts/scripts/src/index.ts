@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createContent, createProfile, createTier, deactivateTier, extendBlob, purchase, sendCoin } from './builder';
+import { createContent, createProfile, createTier, deactivateTier, extendBlob, purchase, sendCoin, ProfileTopic } from './builder';
 import { createPost, viewPost } from './walrus';
 import {
   displayWalletSummary,
@@ -28,11 +28,24 @@ program
   .argument('<bio>', 'Creator bio/description')
   .argument('<avatarUrl>', 'Avatar image URL')
   .argument('<backgroundUrl>', 'Background/banner image URL')
+  .argument('<topic>', 'Topic category: 0=Travel, 1=Movies&Shows, 2=Motorsports, 3=Podcasts&Shows, 4=Lifestyle, 5=VisualArts, 6=Sports, 7=Entertainment, 8=PopCulture, 9=Comedy', parseInt)
   .action(createProfile)
   .addHelpText(
     'after',
-    '\nExample:\n' +
-      '  $ bun start create-profile "Alice Artist" "Digital creator" "https://example.com/avatar.jpg" "https://example.com/background.jpg"\n'
+    '\nExamples:\n' +
+      '  $ bun start create-profile "Alice Artist" "Digital creator" "https://example.com/avatar.jpg" "https://example.com/background.jpg" 5\n' +
+      '  $ bun start create-profile "Bob Travel" "Travel vlogger" "https://example.com/avatar.jpg" "https://example.com/background.jpg" 0\n\n' +
+      'Topics:\n' +
+      '  0 = Travel\n' +
+      '  1 = Movies & Shows\n' +
+      '  2 = Motorsports\n' +
+      '  3 = Podcasts & Shows\n' +
+      '  4 = Lifestyle\n' +
+      '  5 = Visual Arts\n' +
+      '  6 = Sports\n' +
+      '  7 = Entertainment\n' +
+      '  8 = Pop Culture\n' +
+      '  9 = Comedy\n'
   );
 
 // =============================================================================

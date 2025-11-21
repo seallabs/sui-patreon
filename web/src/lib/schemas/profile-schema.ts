@@ -43,6 +43,12 @@ export const profileFormSchema = z.object({
     .optional(),
 
   isAdultContent: z.boolean(),
+
+  topic: z
+    .number()
+    .int('Topic must be an integer')
+    .min(0, 'Invalid topic')
+    .max(9, 'Invalid topic'),
 });
 
 export type ProfileFormData = {
@@ -51,4 +57,5 @@ export type ProfileFormData = {
   avatar: File;
   background?: File;
   isAdultContent: boolean;
+  topic: number;
 };

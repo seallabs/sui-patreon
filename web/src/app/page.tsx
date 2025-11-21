@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { AdaptiveLayout } from "@/components/layout/adaptive-layout";
 import { CreatorCard } from "@/components/creator/creator-card";
@@ -16,6 +16,9 @@ import { useUser } from "@/contexts/user-context";
 export default function HomePage() {
   const { trackCreatorVisit } = useVisitTracking();
   const { user } = useUser(); // Get actual logged-in user
+
+  // Topic filter state
+  const [selectedTopic, setSelectedTopic] = useState<number | null>(null);
 
   // State for each section
   const [recentlyVisited, setRecentlyVisited] = useState<CreatorProfile[]>([]);
@@ -97,23 +100,45 @@ export default function HomePage() {
     loadPopular();
   }, [user]); // Re-fetch when user changes
 
+  // Filter creators by selected topic
+  const filteredRecentlyVisited = useMemo(() => {
+    if (selectedTopic === null) return recentlyVisited;
+    return recentlyVisited.filter(c => c.topic === selectedTopic);
+  }, [recentlyVisited, selectedTopic]);
+
+  const filteredCreatorsForYou = useMemo(() => {
+    if (selectedTopic === null) return creatorsForYou;
+    return creatorsForYou.filter(c => c.topic === selectedTopic);
+  }, [creatorsForYou, selectedTopic]);
+
+  const filteredPopularThisWeek = useMemo(() => {
+    if (selectedTopic === null) return popularThisWeek;
+    return popularThisWeek.filter(c => c.topic === selectedTopic);
+  }, [popularThisWeek, selectedTopic]);
+
   return (
     <AdaptiveLayout>
       <main className="overflow-x-hidden p-6">
         {/* Topic Filters */}
-        <TopicFilters />
+        <TopicFilters selectedTopic={selectedTopic} onTopicChange={setSelectedTopic} />
 
         {/* Recently Visited Section */}
         {isLoadingRecent ? (
           <div className="mb-8 flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : recentlyVisited.length > 0 ? (
+        ) : filteredRecentlyVisited.length > 0 ? (
           <ScrollableSection title="Recently visited">
-            {recentlyVisited.map((creator) => (
+            {filteredRecentlyVisited.map((creator) => (
               <CreatorCard key={creator.id} creator={creator} variant="compact" />
             ))}
           </ScrollableSection>
+        ) : recentlyVisited.length > 0 && filteredRecentlyVisited.length === 0 ? (
+          <div className="mb-8 rounded-lg border border-border bg-card p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              No recently visited creators in this topic. Try selecting a different topic!
+            </p>
+          </div>
         ) : (
           !errorRecent && (
             <div className="mb-8 rounded-lg border border-border bg-card p-6 text-center">
@@ -129,12 +154,18 @@ export default function HomePage() {
           <div className="mb-8 flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : creatorsForYou.length > 0 ? (
+        ) : filteredCreatorsForYou.length > 0 ? (
           <ScrollableSection title="Creators for you" showSeeAll seeAllHref="/explore">
-            {creatorsForYou.map((creator) => (
+            {filteredCreatorsForYou.map((creator) => (
               <CreatorCard key={creator.id} creator={creator} variant="compact" />
             ))}
           </ScrollableSection>
+        ) : creatorsForYou.length > 0 && filteredCreatorsForYou.length === 0 ? (
+          <div className="mb-8 rounded-lg border border-border bg-card p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              No recommended creators in this topic. Try selecting a different topic!
+            </p>
+          </div>
         ) : (
           !errorRecommended && (
             <div className="mb-8 rounded-lg border border-border bg-card p-6 text-center">
@@ -150,12 +181,18 @@ export default function HomePage() {
           <div className="mb-8 flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : popularThisWeek.length > 0 ? (
+        ) : filteredPopularThisWeek.length > 0 ? (
           <ScrollableSection title="Popular this week" showSeeAll seeAllHref="/explore">
-            {popularThisWeek.map((creator) => (
+            {filteredPopularThisWeek.map((creator) => (
               <CreatorCard key={creator.id} creator={creator} variant="compact" />
             ))}
           </ScrollableSection>
+        ) : popularThisWeek.length > 0 && filteredPopularThisWeek.length === 0 ? (
+          <div className="mb-8 rounded-lg border border-border bg-card p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              No popular creators in this topic. Try selecting a different topic!
+            </p>
+          </div>
         ) : (
           !errorPopular && (
             <div className="mb-8 rounded-lg border border-border bg-card p-6 text-center">

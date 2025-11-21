@@ -340,6 +340,7 @@ function formatCreatorResponse(
     avatarUrl: creator.avatarUrl,
     backgroundUrl: creator.backgroundUrl,
     category: 'Creator', // Default category for now
+    topic: creator.topic ?? 0, // Include topic field (default to 0 if missing)
     // TODO: Replace with actual follower count once we have enough real users
     followerCount: getFakedSubscriberCount(followerCount),
     isVerified: false, // Default false for now

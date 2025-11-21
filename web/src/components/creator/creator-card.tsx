@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Users } from "lucide-react";
 import { CreatorProfile } from "@/types";
 import { formatNumber } from "@/lib/utils";
+import { getTopicDisplayName } from "@/lib/topics";
 
 interface CreatorCardProps {
   creator: CreatorProfile;
@@ -67,7 +68,7 @@ export function CreatorCard({ creator, variant = "default" }: CreatorCardProps &
             <span>{formatNumber(creator.followerCount)}</span>
           </div>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            {creator.category}
+            {getTopicDisplayName(creator.topic)}
           </span>
         </div>
       </div>

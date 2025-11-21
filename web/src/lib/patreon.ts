@@ -3,7 +3,7 @@ import { Transaction, TransactionArgument } from '@mysten/sui/transactions';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
 import { CONFIG, suiClient } from './config';
 
-const createProfile = (name: string, bio: string, avatarUrl: string, backgroundUrl: string) => {
+const createProfile = (name: string, bio: string, avatarUrl: string, backgroundUrl: string, topic: number) => {
   const tx = new Transaction();
   tx.moveCall({
     target: `${CONFIG.PUBLISHED_AT}::profile::create_profile`,
@@ -13,6 +13,7 @@ const createProfile = (name: string, bio: string, avatarUrl: string, backgroundU
       tx.pure.string(bio),
       tx.pure.string(avatarUrl),
       tx.pure.string(backgroundUrl),
+      tx.pure.u8(topic),
       tx.object(SUI_CLOCK_OBJECT_ID),
     ],
   });
@@ -99,7 +100,7 @@ const extendBlob = (
   });
 };
 
-const updateProfile = (name: string, bio: string, avatarUrl: string, backgroundUrl: string) => {
+const updateProfile = (name: string, bio: string, avatarUrl: string, backgroundUrl: string, topic: number) => {
   const tx = new Transaction();
   tx.moveCall({
     target: `${CONFIG.PUBLISHED_AT}::profile::update_profile`,
@@ -109,6 +110,7 @@ const updateProfile = (name: string, bio: string, avatarUrl: string, backgroundU
       tx.pure.string(bio),
       tx.pure.string(avatarUrl),
       tx.pure.string(backgroundUrl),
+      tx.pure.u8(topic),
       tx.object(SUI_CLOCK_OBJECT_ID),
     ],
   });

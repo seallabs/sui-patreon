@@ -41,6 +41,13 @@ export const updateProfileFormSchema = z.object({
       'Background image must be a JPEG or PNG image'
     )
     .optional(),
+
+  topic: z
+    .number()
+    .int('Topic must be an integer')
+    .min(0, 'Invalid topic')
+    .max(9, 'Invalid topic')
+    .optional(),
 });
 
 export type UpdateProfileFormData = {
@@ -48,4 +55,5 @@ export type UpdateProfileFormData = {
   bio: string;
   avatar?: File;
   background?: File;
+  topic?: number;
 };

@@ -1,25 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getAllTopics } from "@/lib/topics";
 
-const topics = [
-  "All",
-  "Travel",
-  "Movies & shows",
-  "Motorsports",
-  "Podcasts & shows",
-  "Lifestyle",
-  "Visual arts",
-  "Sports",
-  "Entertainment",
-  "Pop culture",
-  "Comedy",
-  "Role play",
-];
+interface TopicFiltersProps {
+  selectedTopic: number | null; // null means "All"
+  onTopicChange: (topic: number | null) => void;
+}
 
-export function TopicFilters() {
-  const [activeFilter, setActiveFilter] = useState("All");
+export function TopicFilters({ selectedTopic, onTopicChange }: TopicFiltersProps) {
+  const topics = getAllTopics();
 
   return (
     <div className="relative mb-6">
@@ -33,17 +23,30 @@ export function TopicFilters() {
 
         <div className="flex-1 overflow-x-auto scrollbar-hide">
           <div className="flex gap-2">
+            {/* All filter */}
+            <button
+              onClick={() => onTopicChange(null)}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                selectedTopic === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-foreground hover:bg-accent"
+              }`}
+            >
+              All
+            </button>
+
+            {/* Topic filters */}
             {topics.map((topic) => (
               <button
-                key={topic}
-                onClick={() => setActiveFilter(topic)}
+                key={topic.id}
+                onClick={() => onTopicChange(topic.id)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  activeFilter === topic
+                  selectedTopic === topic.id
                     ? "bg-primary text-primary-foreground"
                     : "bg-card text-foreground hover:bg-accent"
                 }`}
               >
-                {topic}
+                {topic.displayName}
               </button>
             ))}
           </div>

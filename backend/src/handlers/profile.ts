@@ -17,17 +17,21 @@ export async function handleProfileCreated(
   eventSeq: string
 ): Promise<void> {
   try {
-    const { profile_id, creator, name, bio, avatar_url, background_url, timestamp } = event.parsedJson as {
+    const { profile_id, creator, name, bio, avatar_url, background_url, topic, timestamp } = event.parsedJson as {
       profile_id: string;
       creator: string;
       name: string;
       bio: string;
       avatar_url: string;
       background_url: string;
+      topic: number;
       timestamp: string;
     };
 
-    console.log(`[ProfileCreated] Processing event for creator ${creator}, name: ${name}`);
+    console.log(`[ProfileCreated] Processing event for creator ${creator}, name: ${name}, topic: ${topic}`);
+
+    // Validate topic is within range 0-9
+    const validTopic = typeof topic === 'number' && topic >= 0 && topic <= 9 ? topic : 0;
 
     // Upsert Creator (idempotent operation)
     await prisma.creator.upsert({
@@ -38,6 +42,7 @@ export async function handleProfileCreated(
         bio: bio,
         avatarUrl: avatar_url || null,
         backgroundUrl: background_url || null,
+        topic: validTopic,
       },
       create: {
         address: creator,
@@ -46,10 +51,11 @@ export async function handleProfileCreated(
         bio: bio,
         avatarUrl: avatar_url || null,
         backgroundUrl: background_url || null,
+        topic: validTopic,
       },
     });
 
-    console.log(`[ProfileCreated] Successfully indexed creator ${name} (${profile_id})`);
+    console.log(`[ProfileCreated] Successfully indexed creator ${name} (${profile_id}) with topic ${validTopic}`);
   } catch (error) {
     console.error(`[ProfileCreated] Error processing event:`, error);
     throw error;
@@ -67,17 +73,21 @@ export async function handleProfileUpdated(
   eventSeq: string
 ): Promise<void> {
   try {
-    const { profile_id, name, bio, avatar_url, background_url } = event.parsedJson as {
+    const { profile_id, name, bio, avatar_url, background_url, topic } = event.parsedJson as {
       profile_id: string;
       creator: string;
       name: string;
       bio: string;
       avatar_url: string;
       background_url: string;
+      topic: number;
       timestamp: string;
     };
 
-    console.log(`[ProfileUpdated] Processing event for profile ${profile_id}, creator: ${name}`);
+    console.log(`[ProfileUpdated] Processing event for profile ${profile_id}, creator: ${name}, topic: ${topic}`);
+
+    // Validate topic is within range 0-9
+    const validTopic = typeof topic === 'number' && topic >= 0 && topic <= 9 ? topic : 0;
 
     // Retry logic to handle race condition where ProfileUpdated arrives before ProfileCreated
     await retryWithBackoff(
@@ -102,11 +112,12 @@ export async function handleProfileUpdated(
             bio: bio,
             avatarUrl: avatar_url || null,
             backgroundUrl: background_url || null,
+            topic: validTopic,
             updatedAt: new Date(),
           },
         });
 
-        console.log(`[ProfileUpdated] Successfully updated profile ${profile_id} for ${name}`);
+        console.log(`[ProfileUpdated] Successfully updated profile ${profile_id} for ${name} with topic ${validTopic}`);
       },
       isDependencyNotFoundError,
       {
