@@ -286,7 +286,7 @@ export const useMessaging = () => {
     }
 
     const requestKey = `fetchLatestMessages-${channelId}`;
-    
+
     // Check if request is already in flight
     if (inFlightRequests.current.has(requestKey)) {
       return;
@@ -311,12 +311,12 @@ export const useMessaging = () => {
           const existingKeys = new Set(
             prev.map(m => `${m.sender}-${m.createdAtMs}-${m.text?.slice(0, 50)}`)
           );
-          
+
           // Filter out any messages that already exist
           const newMessages = response.messages.filter(
             m => !existingKeys.has(`${m.sender}-${m.createdAtMs}-${m.text?.slice(0, 50)}`)
           );
-          
+
           // Update polling state with the new total count
           if (newMessages.length > 0) {
             const newTotal = prev.length + newMessages.length;
@@ -326,10 +326,13 @@ export const useMessaging = () => {
               lastCursor: response.cursor,
             });
           }
-          
+
           // Append new messages to the end (most recent)
           return newMessages.length > 0 ? [...prev, ...newMessages] : prev;
         });
+
+        // Refresh channel metadata to update message count when new messages arrive
+        await getChannelById(channelId);
       }
     } catch (err) {
       // Silently fail for polling - don't show errors for background refreshes
@@ -337,7 +340,7 @@ export const useMessaging = () => {
     } finally {
       inFlightRequests.current.delete(requestKey);
     }
-  }, [messagingClient, currentAccount, pollingState, fetchMessages, sessionKey]);
+  }, [messagingClient, currentAccount, pollingState, fetchMessages, sessionKey, getChannelById]);
 
   // Get member cap for channel (with caching)
   const getMemberCapForChannel = useCallback(async (channelId: string) => {
@@ -453,6 +456,9 @@ export const useMessaging = () => {
         await fetchMessages(channelId);
       }
 
+      // Refresh channel metadata to update message count
+      await getChannelById(channelId);
+
       return { digest };
     } catch (err) {
       const errorMsg = err instanceof Error ? `[sendMessage] ${err.message}` : '[sendMessage] Failed to send message';
@@ -462,7 +468,7 @@ export const useMessaging = () => {
     } finally {
       setIsSendingMessage(false);
     }
-  }, [messagingClient, currentAccount, signAndExecute, suiClient, getMemberCapForChannel, getEncryptedKeyForChannel, fetchMessages, fetchLatestMessages, pollingState, sessionKey]);
+  }, [messagingClient, currentAccount, signAndExecute, suiClient, getMemberCapForChannel, getEncryptedKeyForChannel, fetchMessages, fetchLatestMessages, pollingState, sessionKey, getChannelById]);
 
   // Fetch channels when client is ready (initial fetch only)
   // Auto-refresh is now handled by components that need it

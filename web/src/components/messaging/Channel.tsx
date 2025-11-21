@@ -10,6 +10,7 @@ import { SessionExpirationModal } from './SessionExpirationModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Paperclip } from 'lucide-react';
+import Image from 'next/image';
 
 interface ChannelProps {
   channelId: string;
@@ -159,7 +160,7 @@ export function Channel({ channelId, onBack }: ChannelProps) {
       <SessionExpirationModal isOpen={isSessionExpired} />
       <div className="flex h-[calc(100vh-8rem)] flex-col rounded-lg border bg-card">
         {/* Header */}
-        <div className="flex items-center justify-between border-b p-4">
+        <div className="relative flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={onBack} disabled={isSessionExpired}>
               ← Back
@@ -172,6 +173,16 @@ export function Channel({ channelId, onBack }: ChannelProps) {
                 </p>
               )}
             </div>
+          </div>
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
+            <span className="text-base text-muted-foreground">Secured by</span>
+            <Image
+              src="/seal-logo-lighter.svg"
+              alt="Seal"
+              width={150}
+              height={48}
+              className="h-12 w-auto object-contain"
+            />
           </div>
           {currentChannel && (
             <div className="rounded-full bg-green-500/10 px-2 py-1 text-xs text-green-500">
