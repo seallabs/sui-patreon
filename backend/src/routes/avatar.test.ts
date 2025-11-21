@@ -49,6 +49,25 @@ describe('Avatar Routes', () => {
       uploadedFilename = response.body.filename;
     });
 
+    test('should return backend proxy URL instead of direct MinIO URL', async () => {
+      const response = await request(app)
+        .post('/api/avatar/upload')
+        .send({
+          file: validJpegBase64,
+          contentType: 'image/jpeg',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+
+      // URL should be a backend proxy URL, not a direct MinIO URL
+      expect(response.body.url).toMatch(/\/api\/avatar\//);
+      expect(response.body.url).not.toContain('minio.7k.ag');
+
+      // URL should contain the filename
+      expect(response.body.url).toContain(response.body.filename);
+    });
+
     test('should successfully upload a JPEG avatar', async () => {
       const response = await request(app)
         .post('/api/avatar/upload')

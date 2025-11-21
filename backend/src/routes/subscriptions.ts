@@ -11,6 +11,82 @@ import { jsonResponse } from '../lib/json-serializer';
 const router = Router();
 
 /**
+ * GET /api/subscriptions/:address/creators
+ *
+ * Get list of creators that the user is subscribed to
+ * Returns simplified creator info for messaging/contact selection
+ *
+ * @param address - Subscriber's Sui wallet address
+ * @returns Array of subscribed creators with essential info
+ */
+router.get('/:address/creators', async (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+
+    // Fetch all active subscriptions for the user
+    const subscriptions = await prisma.subscription.findMany({
+      where: {
+        subscriber: address,
+        isActive: true,
+        expiresAt: {
+          gte: new Date(), // Only include non-expired subscriptions
+        },
+      },
+      select: {
+        tierId: true,
+      },
+    });
+
+    if (subscriptions.length === 0) {
+      res.json(jsonResponse([]));
+      return;
+    }
+
+    // Get tier IDs to fetch creators
+    const tierIds = subscriptions.map((sub) => sub.tierId);
+
+    // Fetch tiers
+    const tiers = await prisma.tier.findMany({
+      where: {
+        id: { in: tierIds },
+      },
+      select: {
+        id: true,
+        creatorId: true,
+      },
+    });
+
+    // Get unique creator IDs
+    const creatorIds = [...new Set(tiers.map((tier) => tier.creatorId))];
+
+    // Fetch creators with essential info
+    const creators = await prisma.creator.findMany({
+      where: {
+        id: { in: creatorIds },
+      },
+      select: {
+        address: true,
+        name: true,
+        avatarUrl: true,
+        bio: true,
+        isVerified: true,
+        category: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    res.json(jsonResponse(creators));
+  } catch (error) {
+    console.error('Error fetching subscribed creators:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+    });
+  }
+});
+
+/**
  * GET /api/subscriptions/:address
  *
  * Get user's active subscriptions

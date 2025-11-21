@@ -39,6 +39,7 @@ interface MinioConfig {
   region?: string;
   useSSL?: boolean;
   publicUrl: string;
+  backendUrl?: string; // Backend URL for proxy access
 }
 
 /**
@@ -51,6 +52,7 @@ export class MinioStorage {
   private readonly s3Client: S3Client;
   private readonly bucket: string;
   private readonly publicUrl: string;
+  private readonly backendUrl: string | null;
 
   /**
    * Initialize MinIO storage with S3 client
@@ -59,7 +61,7 @@ export class MinioStorage {
    * @throws Error if required config is missing
    */
   constructor(config: MinioConfig) {
-    const { endpoint, accessKey, secretKey, bucket, region = 'us-east-1', useSSL = true, publicUrl } = config;
+    const { endpoint, accessKey, secretKey, bucket, region = 'us-east-1', useSSL = true, publicUrl, backendUrl } = config;
 
     if (!endpoint || !accessKey || !secretKey || !bucket || !publicUrl) {
       throw new Error('Missing required MinIO configuration');
@@ -67,6 +69,7 @@ export class MinioStorage {
 
     this.bucket = bucket;
     this.publicUrl = publicUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.backendUrl = backendUrl ? backendUrl.replace(/\/$/, '') : null; // Remove trailing slash if present
 
     // Initialize S3 client for MinIO
     this.s3Client = new S3Client({
@@ -85,6 +88,7 @@ export class MinioStorage {
       region,
       ssl: useSSL,
       publicUrl: this.publicUrl,
+      backendUrl: this.backendUrl || '(not set - using direct MinIO URLs)',
     });
   }
 
@@ -228,9 +232,15 @@ export class MinioStorage {
    * Get the public URL for an avatar
    *
    * @param filename - The filename
-   * @returns The public URL to access the avatar
+   * @returns The public URL to access the avatar (backend proxy URL if configured, direct MinIO URL otherwise)
    */
   getAvatarUrl(filename: string): string {
+    // If backend URL is configured, return proxy URL instead of direct MinIO URL
+    if (this.backendUrl) {
+      return `${this.backendUrl}/api/avatar/${filename}`;
+    }
+
+    // Fallback to direct MinIO URL
     return `${this.publicUrl}/${filename}`;
   }
 
@@ -270,6 +280,7 @@ function loadConfig(): MinioConfig {
   const region = process.env.MINIO_REGION || 'us-east-1';
   const useSSL = process.env.MINIO_USE_SSL !== 'false';
   const publicUrl = process.env.MINIO_PUBLIC_URL;
+  const backendUrl = process.env.BACKEND_URL; // Optional: for proxy URLs
 
   if (!endpoint) {
     throw new Error('Missing MINIO_ENDPOINT environment variable');
@@ -295,6 +306,7 @@ function loadConfig(): MinioConfig {
     region,
     useSSL,
     publicUrl,
+    backendUrl,
   };
 }
 

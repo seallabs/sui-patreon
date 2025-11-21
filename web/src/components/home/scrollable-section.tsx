@@ -35,7 +35,7 @@ export function ScrollableSection({
   };
 
   return (
-    <section className={`mb-8 ${className}`}>
+    <section className={`mb-8 w-full ${className}`}>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
         {showSeeAll && (
@@ -48,10 +48,10 @@ export function ScrollableSection({
         )}
       </div>
 
-      <div className="group relative">
+      <div className="group/section relative w-full">
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-lg opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent"
+          className="absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-lg opacity-0 transition-opacity group-hover/section:opacity-100 hover:bg-accent"
           aria-label="Scroll left"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -59,14 +59,14 @@ export function ScrollableSection({
 
         <div
           ref={scrollContainerRef}
-          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+          className="flex w-full gap-4 overflow-x-auto pb-2 scrollbar-hide"
         >
           {children}
         </div>
 
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-lg opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent"
+          className="absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-card shadow-lg opacity-0 transition-opacity group-hover/section:opacity-100 hover:bg-accent"
           aria-label="Scroll right"
         >
           <ChevronRight className="h-5 w-5" />

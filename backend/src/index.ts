@@ -20,6 +20,7 @@ import dashboardRouter from './routes/dashboard';
 import notificationsRouter from './routes/notifications';
 import avatarRouter from './routes/avatar';
 import faucetRouter from './routes/faucet';
+import messagingRouter from './routes/messaging';
 
 // Load environment variables
 dotenv.config();
@@ -76,6 +77,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/avatar', avatarRouter); // Avatar upload/download routes
 app.use('/api/faucet', faucetRouter); // Faucet token distribution
+app.use('/api/messaging', messagingRouter); // Messaging channel mappings
 app.use('/api', uploadRouter); // Upload/download routes
 
 // Global error handler middleware

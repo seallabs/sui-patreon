@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Transaction } from '@mysten/sui/transactions';
 import { DecryptedChannelObject, DecryptMessageResult, ChannelMessagesDecryptedRequest, PollingState } from '@mysten/messaging';
 import { CONFIG } from '@/lib/config';
+import { checkChannelExists, saveChannelMapping } from '@/services/messaging';
 
 export const useMessaging = () => {
   const messagingClient = useMessagingClient();
@@ -42,35 +43,47 @@ export const useMessaging = () => {
       return null;
     }
 
-    // Verify owner is subscribed to the recipient
-    const { data: subscriptions } = await suiClient.getOwnedObjects({
-      owner: currentAccount.address,
-      filter: {
-        StructType: `${CONFIG.PACKAGE_ID}::subscription::ActiveSubscription`,
-      },
-      options: { showContent: true },
-    });
-
-    const subscription = subscriptions.find(sub => {
-      const fields = (sub.data?.content as any).fields;
-      return fields.creator === recipientAddress && fields.expires_at > Date.now();
-    });
-    if (!subscription) {
-      setChannelError('You are not subscribed to this creator, please subscribe to the creator to create a channel');
-      return null;
-    }
-
     setIsCreatingChannel(true);
     setChannelError(null);
 
     try {
-      // Create channel flow
+      // Step 1: Check if channel already exists
+      const existingChannel = await checkChannelExists(currentAccount.address, recipientAddress);
+
+      if (existingChannel.exists && existingChannel.channelId) {
+        console.log('Channel already exists:', existingChannel.channelId);
+        // Return existing channel ID instead of creating new one
+        return {
+          channelId: existingChannel.channelId,
+          existingChannel: true,
+        };
+      }
+
+      // Step 2: Verify owner is subscribed to the recipient
+      const { data: subscriptions } = await suiClient.getOwnedObjects({
+        owner: currentAccount.address,
+        filter: {
+          StructType: `${CONFIG.PACKAGE_ID}::subscription::ActiveSubscription`,
+        },
+        options: { showContent: true },
+      });
+
+      const subscription = subscriptions.find(sub => {
+        const fields = (sub.data?.content as any).fields;
+        return fields.creator === recipientAddress && fields.expires_at > Date.now();
+      });
+      if (!subscription) {
+        setChannelError('You are not subscribed to this creator, please subscribe to the creator to create a channel');
+        return null;
+      }
+
+      // Step 3: Create channel flow
       const flow = messagingClient.createChannelFlow({
         creatorAddress: currentAccount.address,
         initialMemberAddresses: [recipientAddress],
       });
 
-      // Step 1: Build and execute channel creation
+      // Step 4: Build and execute channel creation
       const channelTx = flow.build();
       const { digest } = await signAndExecute({
         transaction: channelTx,
@@ -88,10 +101,10 @@ export const useMessaging = () => {
 
       const channelId = (createdChannel as any)?.objectId;
 
-      // Step 2: Get generated caps
+      // Step 5: Get generated caps
       const { creatorMemberCap } = await flow.getGeneratedCaps({ digest });
 
-      // Step 3: Generate and attach encryption key
+      // Step 6: Generate and attach encryption key
       const attachKeyTx = await flow.generateAndAttachEncryptionKey({
         creatorMemberCap,
       });
@@ -110,10 +123,19 @@ export const useMessaging = () => {
         throw new Error('Transaction failed');
       }
 
+      // Step 7: Save channel mapping to backend
+      if (channelId) {
+        await saveChannelMapping({
+          channelId,
+          userAddress: currentAccount.address,
+          creatorAddress: recipientAddress,
+        });
+      }
+
       // Refresh channels list
       await fetchChannels();
 
-      return { channelId };
+      return { channelId, existingChannel: false };
     } catch (err) {
       const errorMsg = err instanceof Error ? `[createChannel] ${err.message}` : '[createChannel] Failed to create channel';
       setChannelError(errorMsg);

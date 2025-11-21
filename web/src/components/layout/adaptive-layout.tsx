@@ -13,11 +13,11 @@ export function AdaptiveLayout({ children }: AdaptiveLayoutProps) {
   const { isCreatorMode } = useUser();
 
   return (
-    <div className='flex min-h-screen'>
+    <div className='flex min-h-screen overflow-x-hidden'>
       {/* Render the appropriate sidebar based on role */}
       {isCreatorMode ? <CreatorSidebar /> : <Sidebar />}
 
-      <div className='flex-1 pl-64'>
+      <div className='flex-1 overflow-x-hidden pl-64'>
         <Header />
         {children}
       </div>

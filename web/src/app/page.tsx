@@ -99,7 +99,7 @@ export default function HomePage() {
 
   return (
     <AdaptiveLayout>
-      <main className="p-6">
+      <main className="overflow-x-hidden p-6">
         {/* Topic Filters */}
         <TopicFilters />
 

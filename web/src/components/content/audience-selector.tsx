@@ -2,6 +2,7 @@
 
 import { Label } from '@/components/ui/label';
 import { RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { AudienceAccess, SubscriptionTier } from '@/types';
 
@@ -83,7 +84,7 @@ export function AudienceSelector({
           {/* Tier selection (only shown when paid is selected) */}
           {access === 'paid' && (
             <div className='border-t border-border px-4 pb-4 pt-3'>
-              <p className='mb-3 text-sm font-medium'>Select tiers:</p>
+              <p className='mb-3 text-sm font-semibold text-foreground'>Select tiers:</p>
               <div className='space-y-2'>
                 {availableTiers.length === 0 ? (
                   <p className='text-sm text-muted-foreground'>
@@ -91,20 +92,29 @@ export function AudienceSelector({
                   </p>
                 ) : (
                   availableTiers.map((tier) => (
-                    <label
+                    <div
                       key={tier.id}
-                      className='flex items-center gap-2 cursor-pointer'
+                      className={cn(
+                        'flex items-center gap-3 rounded-md border p-3 transition-all cursor-pointer hover:bg-accent/50',
+                        selectedTiers.includes(tier.tierId)
+                          ? 'border-primary/50 bg-accent'
+                          : 'border-border/50'
+                      )}
+                      onClick={() => toggleTier(tier.tierId)}
                     >
-                      <input
-                        type='checkbox'
+                      <Checkbox
+                        id={`tier-${tier.id}`}
                         checked={selectedTiers.includes(tier.tierId)}
-                        onChange={() => toggleTier(tier.tierId)}
-                        className='h-4 w-4 rounded border-gray-300'
+                        onCheckedChange={() => toggleTier(tier.tierId)}
                       />
-                      <span className='text-sm'>
-                        {tier.name} - ${tier.price}/mo
-                      </span>
-                    </label>
+                      <Label
+                        htmlFor={`tier-${tier.id}`}
+                        className='flex-1 cursor-pointer font-normal'
+                      >
+                        <span className='font-medium text-foreground'>{tier.name}</span>
+                        <span className='text-muted-foreground'> - ${tier.price}/mo</span>
+                      </Label>
+                    </div>
                   ))
                 )}
               </div>

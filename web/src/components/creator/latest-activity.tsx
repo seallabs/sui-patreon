@@ -26,7 +26,6 @@ export function LatestActivity({
   const [activeTab, setActiveTab] = useState<ActivityTab>("impressions");
 
   const tabs = [
-    { id: "comments" as ActivityTab, label: "Comments", count: totalComments, icon: MessageSquare },
     { id: "likes" as ActivityTab, label: "Likes", count: totalLikes, icon: Heart },
     { id: "impressions" as ActivityTab, label: "Impressions", count: totalImpressions, icon: Eye },
   ];

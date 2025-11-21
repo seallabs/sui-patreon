@@ -74,6 +74,8 @@ function mapToCreatorProfile(creator: HomeCreatorResponse): CreatorProfile {
       "images.unsplash.com",
       "avatars.githubusercontent.com",
       "minio.7k.ag",
+      "sui-patreon-api.up.railway.app", // Backend proxy URLs
+      "localhost", // Local development
     ];
 
     try {

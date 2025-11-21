@@ -15,7 +15,6 @@ import {
   useSignAndExecuteTransaction,
 } from '@mysten/dapp-kit';
 import { WalrusFile } from '@mysten/walrus';
-import { FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -262,27 +261,6 @@ export default function CreatePage() {
                   {validationErrors.find((e) => e.field === 'content')?.message}
                 </p>
               )}
-            </div>
-
-            {/* Newsletter Template Section */}
-            <div className='mt-12 rounded-lg border border-border bg-card p-6'>
-              <h3 className='mb-4 text-lg font-semibold'>
-                Start creating a...
-              </h3>
-              <button
-                type='button'
-                className='flex w-full items-start gap-4 rounded-lg border border-border bg-background p-4 text-left transition-colors hover:border-primary hover:bg-accent'
-              >
-                <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10'>
-                  <FileText className='h-5 w-5 text-primary' />
-                </div>
-                <div className='flex-1'>
-                  <h4 className='font-medium'>Newsletter</h4>
-                  <p className='mt-1 text-sm text-muted-foreground'>
-                    E.g. Weekly updates, journal entries, exclusive deep dives
-                  </p>
-                </div>
-              </button>
             </div>
           </div>
         </main>

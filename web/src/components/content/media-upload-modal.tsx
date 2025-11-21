@@ -286,6 +286,20 @@ export function MediaUploadModal({
 
         {error && <p className='text-sm text-destructive'>{error}</p>}
 
+        <div className='mt-4 rounded-md bg-muted/30 px-4 py-3'>
+          <p className='text-sm text-muted-foreground'>
+            File is stored and encrypted by Walrus & Seal.{' '}
+            <a
+              href='https://docs.walrus.site/'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-primary underline-offset-4 hover:underline'
+            >
+              Learn more
+            </a>
+          </p>
+        </div>
+
         <DialogFooter>
           <Button type='button' variant='outline' onClick={handleCancel}>
             Cancel

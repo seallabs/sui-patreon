@@ -157,3 +157,21 @@ model FaucetClaim {
   @@index([walletAddress])
   @@index([claimedAt])
 }
+
+// ChannelMapping model - Maps messaging channels to creator-subscriber relationships
+model ChannelMapping {
+  id             String   @id @default(uuid()) @db.Uuid
+  channelId      String   @unique // Sui object ID for on-chain messaging channel
+  userAddress    String // Subscriber's Sui wallet address
+  creatorAddress String // Creator's Sui wallet address
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Composite unique constraint - one channel per user-creator pair
+  @@unique([userAddress, creatorAddress])
+
+  // Indexes for performance
+  @@index([userAddress])
+  @@index([creatorAddress])
+  @@index([channelId])
+}

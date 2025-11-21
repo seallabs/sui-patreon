@@ -1,7 +1,6 @@
 'use client';
 
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
+import { AdaptiveLayout } from '@/components/layout/adaptive-layout';
 import { Button } from '@/components/ui/button';
 import { useContentDetail } from '@/hooks/api/useContentQueries';
 import { useUserSubscriptions } from '@/hooks/api/useSubscriptionQueries';
@@ -326,45 +325,37 @@ export default function ContentDetailPage({ params }: PageProps) {
   // Loading state
   if (isLoading) {
     return (
-      <div className='flex min-h-screen'>
-        <Sidebar />
-        <div className='flex-1 pl-64'>
-          <Header />
-          <main className='mx-auto max-w-5xl px-6 py-8'>
-            <div className='mb-8 h-12 w-3/4 animate-pulse rounded bg-muted' />
-            <div className='mb-6 h-96 w-full animate-pulse rounded-lg bg-muted' />
-            <div className='space-y-4'>
-              <div className='h-4 w-full animate-pulse rounded bg-muted' />
-              <div className='h-4 w-5/6 animate-pulse rounded bg-muted' />
-            </div>
-          </main>
-        </div>
-      </div>
+      <AdaptiveLayout>
+        <main className='mx-auto max-w-5xl px-6 py-8'>
+          <div className='mb-8 h-12 w-3/4 animate-pulse rounded bg-muted' />
+          <div className='mb-6 h-96 w-full animate-pulse rounded-lg bg-muted' />
+          <div className='space-y-4'>
+            <div className='h-4 w-full animate-pulse rounded bg-muted' />
+            <div className='h-4 w-5/6 animate-pulse rounded bg-muted' />
+          </div>
+        </main>
+      </AdaptiveLayout>
     );
   }
 
   // Error state
   if (error || !contentData) {
     return (
-      <div className='flex min-h-screen'>
-        <Sidebar />
-        <div className='flex-1 pl-64'>
-          <Header />
-          <main className='flex items-center justify-center p-8'>
-            <div className='max-w-md text-center'>
-              <div className='mb-4 flex justify-center'>
-                <AlertCircle className='h-16 w-16 text-destructive' />
-              </div>
-              <h1 className='mb-2 text-2xl font-bold'>Content Not Found</h1>
-              <p className='mb-6 text-muted-foreground'>
-                {error?.message ||
-                  "The content you're looking for doesn't exist"}
-              </p>
-              <Button onClick={() => router.back()}>Go Back</Button>
+      <AdaptiveLayout>
+        <main className='flex items-center justify-center p-8'>
+          <div className='max-w-md text-center'>
+            <div className='mb-4 flex justify-center'>
+              <AlertCircle className='h-16 w-16 text-destructive' />
             </div>
-          </main>
-        </div>
-      </div>
+            <h1 className='mb-2 text-2xl font-bold'>Content Not Found</h1>
+            <p className='mb-6 text-muted-foreground'>
+              {error?.message ||
+                "The content you're looking for doesn't exist"}
+            </p>
+            <Button onClick={() => router.back()}>Go Back</Button>
+          </div>
+        </main>
+      </AdaptiveLayout>
     );
   }
 
@@ -385,186 +376,180 @@ export default function ContentDetailPage({ params }: PageProps) {
   } = contentData;
 
   return (
-    <div className='flex min-h-screen'>
-      <Sidebar />
+    <AdaptiveLayout>
+      <main className='mx-auto max-w-5xl px-6 py-8'>
+        {/* Header Section */}
+        <section className='mb-8'>
+          {/* Title */}
+          <h1 className='mb-6 text-4xl font-bold'>{title}</h1>
 
-      <div className='flex-1 pl-64'>
-        <Header />
-
-        <main className='mx-auto max-w-5xl px-6 py-8'>
-          {/* Header Section */}
-          <section className='mb-8'>
-            {/* Title */}
-            <h1 className='mb-6 text-4xl font-bold'>{title}</h1>
-
-            {/* Creator Info Bar */}
-            <div className='mb-6 flex items-center justify-between'>
-              <div
-                className='flex cursor-pointer items-center gap-4'
-                onClick={handleCreatorClick}
-              >
-                {/* Avatar */}
-                <div className='relative h-12 w-12 overflow-hidden rounded-full'>
-                  <img
-                    src={creator.avatarUrl}
-                    alt={creator.displayName}
-                    className='h-full w-full object-cover'
-                  />
-                </div>
-
-                {/* Creator Name & Date */}
-                <div>
-                  <p className='font-semibold hover:underline'>
-                    {creator.displayName}
-                  </p>
-                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                    <Calendar className='h-3.5 w-3.5' />
-                    <span>{formatRelativeTime(createdAt)}</span>
-                  </div>
-                </div>
+          {/* Creator Info Bar */}
+          <div className='mb-6 flex items-center justify-between'>
+            <div
+              className='flex cursor-pointer items-center gap-4'
+              onClick={handleCreatorClick}
+            >
+              {/* Avatar */}
+              <div className='relative h-12 w-12 overflow-hidden rounded-full'>
+                <img
+                  src={creator.avatarUrl}
+                  alt={creator.displayName}
+                  className='h-full w-full object-cover'
+                />
               </div>
 
-              {/* Action Buttons */}
-              <div className='flex items-center gap-3'>
-                {/* Like Button */}
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={handleLike}
-                  className='gap-2'
-                >
-                  <Heart
-                    className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''
-                      }`}
-                  />
-                  <span>{formatNumber(likes + (isLiked ? 1 : 0))}</span>
-                </Button>
+              {/* Creator Name & Date */}
+              <div>
+                <p className='font-semibold hover:underline'>
+                  {creator.displayName}
+                </p>
+                <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+                  <Calendar className='h-3.5 w-3.5' />
+                  <span>{formatRelativeTime(createdAt)}</span>
+                </div>
+              </div>
+            </div>
 
-                {/* Share Button */}
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={handleShare}
-                  className='gap-2'
-                >
-                  <Share2 className='h-4 w-4' />
-                  Share
-                </Button>
+            {/* Action Buttons */}
+            <div className='flex items-center gap-3'>
+              {/* Like Button */}
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleLike}
+                className='gap-2'
+              >
+                <Heart
+                  className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''
+                    }`}
+                />
+                <span>{formatNumber(likes + (isLiked ? 1 : 0))}</span>
+              </Button>
 
-                {/* Extend Blob Button */}
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => setShowExtendDialog(true)}
-                  className='gap-2'
-                  title='Help extend blob storage for this content'
-                >
-                  <Clock className='h-4 w-4' />
-                  Extend Storage
-                </Button>
+              {/* Share Button */}
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleShare}
+                className='gap-2'
+              >
+                <Share2 className='h-4 w-4' />
+                Share
+              </Button>
 
-                {/* Lock Icon for Exclusive */}
-                {!isPublic && !isSubscribed && (
-                  <div className='flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-medium text-primary'>
-                    <Lock className='h-4 w-4' />
-                    Exclusive
+              {/* Extend Blob Button */}
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setShowExtendDialog(true)}
+                className='gap-2'
+                title='Help extend blob storage for this content'
+              >
+                <Clock className='h-4 w-4' />
+                Extend Storage
+              </Button>
+
+              {/* Lock Icon for Exclusive */}
+              {!isPublic && !isSubscribed && (
+                <div className='flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-medium text-primary'>
+                  <Lock className='h-4 w-4' />
+                  Exclusive
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Content Section */}
+        <section className='mb-12'>
+          {/* Media Display */}
+          {shouldShowExclusive ? (
+            decrypting ? (
+              <div className='mb-6 flex aspect-video items-center justify-center rounded-lg border border-border bg-card'>
+                <div className='flex flex-col items-center gap-3 text-muted-foreground'>
+                  <Loader2 className='h-6 w-6 animate-spin' />
+                  <p className='text-sm font-medium text-muted-foreground/80'>
+                    Decrypting exclusive content...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className='mb-6 overflow-hidden rounded-lg border border-border bg-card'>
+                {mediaUrl && contentType === 'video' && (
+                  <video
+                    controls
+                    className='aspect-video w-full'
+                    src={mediaUrl}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+
+                {mediaUrl && contentType === 'audio' && (
+                  <div className='p-8'>
+                    <audio controls className='w-full' src={mediaUrl}>
+                      Your browser does not support the audio tag.
+                    </audio>
+                  </div>
+                )}
+
+                {mediaUrl && contentType === 'image' && (
+                  <div className='relative w-full flex justify-center'>
+                    <img
+                      src={mediaUrl}
+                      alt={title}
+                      className='object-contain'
+                    />
+                  </div>
+                )}
+
+                {contentType === 'text' && (
+                  <div className='p-8'>
+                    <p className='whitespace-pre-wrap text-muted-foreground'>
+                      {description}
+                    </p>
                   </div>
                 )}
               </div>
-            </div>
-          </section>
-
-          {/* Content Section */}
-          <section className='mb-12'>
-            {/* Media Display */}
-            {shouldShowExclusive ? (
-              decrypting ? (
-                <div className='mb-6 flex aspect-video items-center justify-center rounded-lg border border-border bg-card'>
-                  <div className='flex flex-col items-center gap-3 text-muted-foreground'>
-                    <Loader2 className='h-6 w-6 animate-spin' />
-                    <p className='text-sm font-medium text-muted-foreground/80'>
-                      Decrypting exclusive content...
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className='mb-6 overflow-hidden rounded-lg border border-border bg-card'>
-                  {mediaUrl && contentType === 'video' && (
-                    <video
-                      controls
-                      className='aspect-video w-full'
-                      src={mediaUrl}
-                    >
-                      Your browser does not support the video tag.
-                    </video>
-                  )}
-
-                  {mediaUrl && contentType === 'audio' && (
-                    <div className='p-8'>
-                      <audio controls className='w-full' src={mediaUrl}>
-                        Your browser does not support the audio tag.
-                      </audio>
-                    </div>
-                  )}
-
-                  {mediaUrl && contentType === 'image' && (
-                    <div className='relative w-full flex justify-center'>
-                      <img
-                        src={mediaUrl}
-                        alt={title}
-                        className='object-contain'
-                      />
-                    </div>
-                  )}
-
-                  {contentType === 'text' && (
-                    <div className='p-8'>
-                      <p className='whitespace-pre-wrap text-muted-foreground'>
-                        {description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )
-            ) : (
-              // Locked State
-              <div className='mb-6 flex aspect-video items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50'>
-                <div className='text-center'>
-                  <Lock className='mx-auto mb-4 h-16 w-16 text-muted-foreground' />
-                  <h3 className='mb-2 text-xl font-semibold'>
-                    Exclusive Content
-                  </h3>
-                  <p className='mb-4 text-muted-foreground'>
-                    Subscribe to {creator.displayName} to unlock this content
-                  </p>
-                  <Button onClick={handleCreatorClick}>
-                    View Subscription Tiers
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Description */}
-            <div className='rounded-lg border border-border bg-card p-6'>
-              <h2 className='mb-4 text-xl font-semibold'>About</h2>
-              <p className='whitespace-pre-wrap text-muted-foreground'>
-                {description}
-              </p>
-
-              {/* Stats */}
-              <div className='mt-6 flex items-center gap-6 border-t border-border pt-4 text-sm text-muted-foreground'>
-                <span>{formatNumber(views)} views</span>
-                <span>{formatNumber(likes)} likes</span>
-                <span>Posted {formatRelativeTime(createdAt)}</span>
+            )
+          ) : (
+            // Locked State
+            <div className='mb-6 flex aspect-video items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50'>
+              <div className='text-center'>
+                <Lock className='mx-auto mb-4 h-16 w-16 text-muted-foreground' />
+                <h3 className='mb-2 text-xl font-semibold'>
+                  Exclusive Content
+                </h3>
+                <p className='mb-4 text-muted-foreground'>
+                  Subscribe to {creator.displayName} to unlock this content
+                </p>
+                <Button onClick={handleCreatorClick}>
+                  View Subscription Tiers
+                </Button>
               </div>
             </div>
-          </section>
+          )}
 
-          {/* Footer Section - Carousels */}
-          <ContentCarousel title='Related posts' posts={relatedPosts} />
-          <ContentCarousel title='Popular posts' posts={popularPosts} />
-        </main>
-      </div>
+          {/* Description */}
+          <div className='rounded-lg border border-border bg-card p-6'>
+            <h2 className='mb-4 text-xl font-semibold'>About</h2>
+            <p className='whitespace-pre-wrap text-muted-foreground'>
+              {description}
+            </p>
+
+            {/* Stats */}
+            <div className='mt-6 flex items-center gap-6 border-t border-border pt-4 text-sm text-muted-foreground'>
+              <span>{formatNumber(views)} views</span>
+              <span>{formatNumber(likes)} likes</span>
+              <span>Posted {formatRelativeTime(createdAt)}</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer Section - Carousels */}
+        <ContentCarousel title='Related posts' posts={relatedPosts} />
+        <ContentCarousel title='Popular posts' posts={popularPosts} />
+      </main>
 
       {/* Extend Blob Dialog */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
@@ -619,6 +604,6 @@ export default function ContentDetailPage({ params }: PageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdaptiveLayout>
   );
 }

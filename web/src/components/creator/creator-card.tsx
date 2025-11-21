@@ -11,7 +11,7 @@ export function CreatorCard({ creator, variant = "default" }: CreatorCardProps &
   return (
     <Link
       href={`/creator/${creator.address}`}
-      className={`group block flex-shrink-0 overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg ${
+      className={`group/card block flex-shrink-0 overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg ${
         variant === "compact" ? "w-[280px]" : "w-full"
       }`}
     >
@@ -21,7 +21,7 @@ export function CreatorCard({ creator, variant = "default" }: CreatorCardProps &
           <img
             src={creator.backgroundUrl}
             alt={`${creator.displayName} background`}
-            className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
