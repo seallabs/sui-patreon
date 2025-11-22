@@ -186,7 +186,6 @@ export default function ContentDetailPage({ params }: PageProps) {
       (s) => s.tier?.creator?.address === contentData?.creator.address
     );
   }, [subscriptions, contentData?.creator.address]);
-  console.log(subscriptions, subscription);
 
   // Only decrypt if content is exclusive AND user has subscription
   const shouldDecrypt = !contentData?.isPublic && contentData?.isSubscribed;
@@ -204,30 +203,28 @@ export default function ContentDetailPage({ params }: PageProps) {
   );
 
   // Determine which media to show
-  // For public content: show preview directly (no decryption needed)
-  // For exclusive content with subscription: show decrypted exclusive content
-  // For exclusive content without subscription: show locked state
+  // For public content: show exclusive content directly from Walrus (unencrypted)
+  // For private content with subscription: show decrypted exclusive content (via Seal)
+  // For private content without subscription: show locked state
   const shouldShowContent = contentData?.isPublic || contentData?.isSubscribed;
   const mediaUrl = useMemo(() => {
-    // Public content - show preview directly
+    // Public content - show exclusive content directly from Walrus (no decryption needed)
     if (contentData?.isPublic) {
-      return contentData?.previewId
-        ? getWalrusUrl(contentData.previewId)
+      return contentData?.exclusiveId
+        ? getWalrusUrl(contentData.exclusiveId)
         : null;
     }
 
-    // Exclusive content with subscription - show decrypted content
+    // Private content with subscription - show decrypted exclusive content
     if (contentData?.isSubscribed && decryped) {
       return decryped;
     }
 
-    // Exclusive content without subscription - show preview
-    return contentData?.previewId
-      ? getWalrusUrl(contentData.previewId)
-      : null;
-  }, [contentData?.isPublic, contentData?.isSubscribed, decryped, contentData?.previewId]);
+    // Private content without subscription - show locked state (no URL)
+    return null;
+  }, [contentData?.isPublic, contentData?.isSubscribed, decryped, contentData?.exclusiveId]);
+
   useEffect(() => {
-    console.log({ mediaUrl, type: contentData?.contentType });
     // Reset loading state when mediaUrl changes
     if (mediaUrl) {
       setMediaLoading(true);
@@ -398,8 +395,6 @@ export default function ContentDetailPage({ params }: PageProps) {
     createdAt,
     isPublic,
     isSubscribed,
-    previewId,
-    exclusiveId,
     contentType,
     relatedPosts,
     popularPosts,
@@ -496,12 +491,26 @@ export default function ContentDetailPage({ params }: PageProps) {
           {shouldShowContent ? (
             // Show decrypting loader only for exclusive content with subscription
             shouldDecrypt && decrypting ? (
-              <div className='mb-6 flex aspect-video items-center justify-center rounded-lg border border-border bg-card'>
-                <div className='flex flex-col items-center gap-3 text-muted-foreground'>
-                  <Loader2 className='h-6 w-6 animate-spin' />
-                  <p className='text-sm font-medium text-muted-foreground/80'>
-                    Decrypting exclusive content...
-                  </p>
+              <div className='mb-6 overflow-hidden rounded-lg border border-border bg-card'>
+                <div className='flex aspect-video items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10'>
+                  <div className='flex flex-col items-center gap-6'>
+                    {/* Seal decrypting GIF */}
+                    <img
+                      src='/seal.avif'
+                      alt='Decrypting with Seal'
+                      className='h-40 w-40 object-contain md:h-48 md:w-48'
+                    />
+                    {/* Decrypting message */}
+                    <div className='flex flex-col items-center gap-2'>
+                      <p className='text-base font-medium text-muted-foreground md:text-lg'>
+                        Decrypting exclusive content...
+                      </p>
+                      <div className='flex items-center gap-2 text-sm text-muted-foreground/80'>
+                        <span>Powered by</span>
+                        <span className='font-semibold text-primary'>Seal</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (

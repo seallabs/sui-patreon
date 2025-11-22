@@ -8,18 +8,15 @@ export const useDecryptContent = (
   patchId?: string
 ) => {
   const { data: sessionKey } = useSealSessionKey();
-  console.log(sessionKey, contentId, subscriptionId, patchId);
   return useQuery({
     queryKey: ['decryptContent', patchId, contentId, subscriptionId],
     queryFn: async () => {
-      console.log('decryping');
       const data = await decryptContent({
         contentId: contentId!,
         subscriptionId: subscriptionId!,
         blobId: patchId!,
         sessionKey: sessionKey!,
       });
-      console.log(data);
       return data;
     },
     enabled: !!sessionKey && !!patchId && !!contentId && !!subscriptionId,

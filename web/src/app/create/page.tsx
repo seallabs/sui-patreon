@@ -130,19 +130,33 @@ export default function CreatePage() {
     }
 
     setIsPublishing(true);
-    setPublishingStep('encrypting');
 
     try {
       console.log('Publishing post:', formData);
 
-      // Step 1: Encrypt exclusive content
       const nonce = Date.now();
-      const encodedExclusiveFile = await sealClient.encrypt({
-        threshold: 2,
-        packageId: CONFIG.PACKAGE_ID,
-        id: computeID(nonce, userAddress),
-        data: new Uint8Array(await formData.exclusiveFile!.arrayBuffer()),
-      });
+      const isPublic = formData.tierIds.length === 0;
+
+      // Step 1: Prepare exclusive content (encrypt only for private content)
+      let exclusiveFileData: Uint8Array;
+      let exclusiveContentType: string;
+
+      if (isPublic) {
+        // Public content - no encryption needed, go straight to upload
+        exclusiveFileData = new Uint8Array(await formData.exclusiveFile!.arrayBuffer());
+        exclusiveContentType = formData.exclusiveFile!.type;
+      } else {
+        // Private content - encrypt with Seal
+        setPublishingStep('encrypting');
+        const encodedExclusiveFile = await sealClient.encrypt({
+          threshold: 2,
+          packageId: CONFIG.PACKAGE_ID,
+          id: computeID(nonce, userAddress),
+          data: new Uint8Array(await formData.exclusiveFile!.arrayBuffer()),
+        });
+        exclusiveFileData = encodedExclusiveFile.encryptedObject;
+        exclusiveContentType = 'application/encrypted';
+      }
 
       // Step 2: Upload to Walrus
       setPublishingStep('uploading-walrus');
@@ -154,9 +168,9 @@ export default function CreatePage() {
             tags: { 'content-type': formData.previewFile!.type },
           }),
           WalrusFile.from({
-            contents: encodedExclusiveFile.encryptedObject,
-            identifier: 'exclusive.enc',
-            tags: { 'content-type': 'application/encrypted' },
+            contents: exclusiveFileData,
+            identifier: isPublic ? formData.exclusiveFile!.name : 'exclusive.enc',
+            tags: { 'content-type': exclusiveContentType },
           }),
         ],
       });

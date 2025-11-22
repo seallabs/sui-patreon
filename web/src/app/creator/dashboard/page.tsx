@@ -137,9 +137,9 @@ export default function CreatorDashboard() {
         creatorAddress: MOCK_WALLET_ADDRESS,
         title: dashboardData.recentPost.title,
         description: '',
-        thumbnailUrl: getWalrusUrl(
-          dashboardData.recentPost.previewId || dashboardData.recentPost.exclusiveId
-        ),
+        thumbnailUrl: dashboardData.recentPost.previewId
+          ? getWalrusUrl(dashboardData.recentPost.previewId)
+          : undefined,
         contentType: mapContentTypeToMediaType(dashboardData.recentPost.contentType),
         tierIds: [],
         isPublic: dashboardData.recentPost.audience === 'free',
@@ -156,7 +156,7 @@ export default function CreatorDashboard() {
         creatorAddress: MOCK_WALLET_ADDRESS,
         title: post.title,
         description: '',
-        thumbnailUrl: getWalrusUrl(post.previewId || post.exclusiveId),
+        thumbnailUrl: post.previewId ? getWalrusUrl(post.previewId) : undefined,
         contentType: mapContentTypeToMediaType(post.contentType),
         tierIds: [],
         isPublic: post.audience === 'free',

@@ -25,7 +25,8 @@ interface ContentDetailApiResponse {
     contentType: string;
     previewId: string | null;
     exclusiveId: string | null;
-    isLocked: boolean;
+    isPublic: boolean; // Whether content is publicly accessible
+    isLocked: boolean; // Whether current user has access
     viewCount: number;
     likeCount: number;
     publishedAt: string;
@@ -179,7 +180,7 @@ export async function fetchContentDetail(
       likes: data.content.likeCount,
       views: data.content.viewCount,
       createdAt: new Date(data.content.publishedAt),
-      isPublic: !data.content.isLocked,
+      isPublic: data.content.isPublic, // Use actual database value
       isSubscribed: data.isSubscribed,
       allowedTiers: data.content.allowedTiers,
       relatedPosts,

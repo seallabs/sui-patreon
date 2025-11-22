@@ -163,9 +163,11 @@ router.get('/:contentId', async (req: Request, res: Response) => {
         description: content.description,
         contentType: content.contentType,
         previewId: content.previewPatchId,
-        // Only include exclusive content if user has access
-        exclusiveId: isSubscribed ? content.sealedPatchId : null,
-        isLocked: !isSubscribed,
+        // For public content: always include (unencrypted)
+        // For private content: only include if user has subscription
+        exclusiveId: (content.isPublic || isSubscribed) ? content.sealedPatchId : null,
+        isPublic: content.isPublic, // Use actual database value, not computed from subscription
+        isLocked: !isSubscribed, // User's access status (for compatibility)
         viewCount: contentStats.viewCount,
         likeCount: contentStats.likeCount,
         publishedAt: content.publishedAt,

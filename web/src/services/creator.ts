@@ -132,7 +132,7 @@ function mapToCreatorProfileData(
     creatorAddress: creator.address,
     title: post.title,
     description: post.description,
-    thumbnailUrl: getWalrusUrl(post.previewId || post.exclusiveId),
+    thumbnailUrl: post.previewId ? getWalrusUrl(post.previewId) : undefined,
     contentType: normalizeContentType(post.contentType),
     blobId: undefined, // Not included in profile response
     tierIds: [], // Not included in profile response
